@@ -76,6 +76,29 @@ distube.on("deleteQueue", (queue) => {
 
 function getInfo(guildId) {
     const queue = distube.getQueue(guildId);
+    // console.log(queue.songs);
+
+    const songs = queue.songs.map(({ source, name: title, duration, url, thumbnail }) => {
+        return { source, title, duration, url, thumbnail }
+    });
+
+    const voiceChannel = {
+        name: queue.voiceChannel.name,
+        id: queue.voiceChannel.id,
+    };
+
+    const info = {
+        guild: queue.voiceChannel.guild.name,
+        guildId: queue.voiceChannel.guildId,
+        songs,
+        voiceChannel,
+        paused: queue.paused,
+        looping: queue.repeatMode,
+        currentTime: queue.currentTime,
+        volume: queue.volume
+    };
+
+    return info;
 }
 
 app.post("/join", async (req, res) => {
