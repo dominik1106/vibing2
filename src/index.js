@@ -1,6 +1,7 @@
 const { Client, Events, GatewayIntentBits } = require('discord.js');
 const { DisTube, DisTubeVoice, DisTubeVoiceManager } = require("distube");
 const { YouTubePlugin } = require("@distube/youtube");
+const path = require("path")
 
 require('dotenv').config();
 
@@ -16,7 +17,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "public")));
 
 // Create http server from express server for socket.io
 const server = require("http").createServer(app);
@@ -25,6 +26,13 @@ const io = new Server(server, {
     origin: "*",
     methods: ["GET", "POST"]
   }
+});
+
+io.on("connection", (socket) => {
+    socket.emit("init", "Please provide the guildId", (guildId) => {
+      console.log("Client-Socket joining guild: ", guildId);
+      socket.join(guildId);
+    });
 });
 
 const client = new Client({ 
@@ -54,6 +62,8 @@ client.on(Events.InteractionCreate, async interaction => {
 			await interaction.reply({ content: 'There was an error while executing this command!', flags: MessageFlags.Ephemeral });
 		}
 	}
+
+    distube.emit("state-change", interaction.guildId);
 })
 
 const distube = new DisTube(client, {
@@ -74,6 +84,11 @@ distube.on("deleteQueue", (queue) => {
         queue.textChannel.send("No more songs!");
     }
     console.log(`[DeleteQueue]: ${queue}`);
+});
+
+distube.on("state-change", (guildId) => {
+    const info = getInfo(guildId);
+    io.to(guildId).emit("state-change", info);
 });
 
 function getInfo(guildId) {
@@ -103,6 +118,10 @@ function getInfo(guildId) {
     return info;
 }
 
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 app.post("/join", async (req, res) => {
     const { guildId, channelId } = req.body;
 
@@ -113,6 +132,7 @@ app.post("/join", async (req, res) => {
     }
 
     await distube.voices.join(channel);
+    distube.emit("state-change", guildId);
 
     res.status(200);
     res.send();
@@ -131,6 +151,9 @@ app.post("/add-song", async (req, res) => {
         await distube.play(channel, song, {
             skip: false,
         });
+
+        distube.emit("state-change", guildId);
+
         res.status(200);
         res.send();
     } catch(error) {
@@ -154,6 +177,8 @@ app.post("/pause-toggle", async (req, res) => {
         queue.pause();
     }
 
+    distube.emit("state-change", guildId);
+
     res.status(200);
     res.send();
 });
@@ -163,6 +188,8 @@ app.post("/skip", async (req, res) => {
 
     try {
         await distube.skip(guildId);
+
+        distube.emit("state-change", guildId);
 
         const queue = distube.getQueue(guildId);
         if(!queue) {
@@ -196,6 +223,8 @@ app.post("/loop", async (req, res) => {
     } else {
         queue.repeatMode = RepeatMode.DISABLED;
     }
+
+    distube.emit("state-change", guildId);
 
     res.status(200);
     res.json({looping: queue.RepeatMode});
