@@ -13,10 +13,11 @@
     "@discordjs/opus": "^0.10.0",
     "@discordjs/voice": "^0.18.0",
     "@distube/youtube": "^1.0.4",
+    "discord.js": "^14.18.0",
     "distube": "^5.0.4",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "socket.io": "^4.8.1",
-    "sodium-native": "^4.3.2"
+    "libsodium-wrappers": "^0.7.15",
+    "socket.io": "^4.8.1"
   }
 }

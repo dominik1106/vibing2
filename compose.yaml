@@ -1,0 +1,12 @@
+services:
+  vibing2:
+    build:
+      context: .
+    environment:
+      NODE_ENV: production
+      BOT_TOKEN: DISCORD_BOT_TOKEN
+      CLIENT_ID: DISCORD_CLIENT_ID
+      #PORT: 4321
+
+    ports:
+      - 4321:4321
