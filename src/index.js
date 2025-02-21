@@ -4,6 +4,27 @@ const { YouTubePlugin } = require("@distube/youtube");
 
 const { token } = require('../config.json');
 
+const { Server } = require("socket.io");
+const express = require("express");
+const cors = require('cors');
+const app = express();
+
+// Configure middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cors());
+app.use(express.static("public"));
+const port = 4321
+
+// Create http server from express server for socket.io
+const server = require("http").createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
+
 const client = new Client({ 
     intents: [
         GatewayIntentBits.Guilds,
@@ -115,4 +136,8 @@ async function skip(guildId) {
 
 client.login(token).then(() => {
     console.log(`Bot ready! Logged in as ${client.user.tag}`);
+
+    server.listen(port, () => {
+        console.log(`Server listening on port ${port}`);
+    });
 });
