@@ -19,11 +19,8 @@ WORKDIR /usr/src/app
 # Install FFmpeg
 RUN apk add --no-cache ffmpeg
 
-# Download dependencies as a separate step to take advantage of Docker's caching.
-# Leverage a cache mount to /root/.npm to speed up subsequent builds.
-# Leverage a bind mounts to package.json and package-lock.json to avoid having to copy them into
-# into this layer.
-RUN npm install
+COPY package.json . 
+RUN npm install --omit=dev
 
 # Run the application as a non-root user.
 USER node
