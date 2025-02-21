@@ -4,7 +4,10 @@ const { RepeatMode } = require("distube");
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("loop")
-        .setDescription("Toggle looping the current song"),
+        .setDescription("Toggle looping the current song")
+        .setDescriptionLocalizations({
+            de: "Wiederholen des aktuellen Songs umschalten"
+        }),
     async execute(interaction, distube) {
         const queue = distube.getQueue(interaction.guild);
         if(!queue) {

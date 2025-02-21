@@ -3,7 +3,10 @@ const { SlashCommandBuilder } = require("discord.js");
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("skip")
-        .setDescription("Skip current song"),
+        .setDescription("Skip current song")
+        .setDescriptionLocalizations({
+            de: "Überspringt aktuelles Lied, deaktiviert außerdem Wiederholung"
+        }),
     async execute(interaction, distube) {
         const queue = distube.getQueue(interaction.guild);
         if(!queue) {

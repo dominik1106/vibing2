@@ -3,7 +3,10 @@ const { SlashCommandBuilder } = require("discord.js");
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("pause")
-        .setDescription("Toggle Pause"),
+        .setDescription("pause/resume current song")
+        .setDescriptionLocalizations({
+            de: "Pausiert/Setzt aktuelles Lied fort"
+        }),
     async execute(interaction, distube) {
         const queue = distube.getQueue(interaction.guild);
         if(!queue) {
