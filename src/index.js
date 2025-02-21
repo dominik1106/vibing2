@@ -2,7 +2,10 @@ const { Client, Events, GatewayIntentBits } = require('discord.js');
 const { DisTube, DisTubeVoice, DisTubeVoiceManager } = require("distube");
 const { YouTubePlugin } = require("@distube/youtube");
 
-const { token } = require('../config.json');
+require('dotenv').config();
+
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const PORT = process.env.PORT || 4321;
 
 const { Server } = require("socket.io");
 const express = require("express");
@@ -14,7 +17,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(express.static("public"));
-const port = 4321
 
 // Create http server from express server for socket.io
 const server = require("http").createServer(app);
@@ -199,10 +201,10 @@ app.post("/loop", async (req, res) => {
     res.json({looping: queue.RepeatMode});
 });
 
-client.login(token).then(() => {
+client.login(BOT_TOKEN).then(() => {
     console.log(`Bot ready! Logged in as ${client.user.tag}`);
 
-    server.listen(port, () => {
-        console.log(`Server listening on port ${port}`);
+    server.listen(PORT, () => {
+        console.log(`Server listening on port ${PORT}`);
     });
 });

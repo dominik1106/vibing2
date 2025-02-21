@@ -1,7 +1,9 @@
 const { REST, Routes, Collection } = require("discord.js");
-const { token, clientId } = require("../config.json");
 const fs = require("node:fs");
 const path = require("node:path");
+
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const CLIENT_ID = process.env.CLIENT_ID;
 
 const commands = new Collection();
 
@@ -26,7 +28,7 @@ for(const folder of commandFolders) {
     }
 }
 
-const rest = new REST().setToken(token);
+const rest = new REST().setToken(BOT_TOKEN);
 const RESTcommands = commands.map(command => command.data.toJSON());
 
 (async () => {
@@ -35,7 +37,7 @@ const RESTcommands = commands.map(command => command.data.toJSON());
 
 		// The put method is used to fully refresh all commands in the guild with the current set
 		const data = await rest.put(
-			Routes.applicationCommands(clientId),
+			Routes.applicationCommands(CLIENT_ID),
 			{ body: RESTcommands },
 		);
 
