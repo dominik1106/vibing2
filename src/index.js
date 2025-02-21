@@ -78,43 +78,49 @@ distube.on("deleteQueue", (queue) => {
     console.log(`[DeleteQueue]: ${queue}`);
 })
 
-async function joinChannel(channelId, song) {
+app.post("/join", async (req, res) => {
+    const { guildId, channelId } = req.body;
+
     const channel = await client.channels.fetch(channelId);
     if(!channel) {
-        console.error("Did not find channel!");
-        return;
+        res.status(400);
+        res.send("Channel not found!");
     }
 
     await distube.voices.join(channel);
-}
 
-async function addSong(guildId, channelId = null, song) {
-    let channel = null;
-    if(!channelId) {
-        channel = distube.voices.get(guildId).channel;
-        if(!channel && !channelId) {
-            console.error("Bot not connected to voice channel!");
-            return;
-        }
-    } else {
-        channel = await client.channels.fetch(channelId);
-    }
+    res.status(200);
+    res.send();
+});
 
+app.post("/add-song", async (req, res) => {
+    const { guildId, song } = req.body;
+
+    const channel = await client.channels.fetch(channelId);
     if(!channel) {
-        console.error("Did not find channel!");
-        return;
+        res.status(400);
+        res.send("Channel not found!");
     }
 
-    await distube.play(channel, song, {
-        skip: false,
-    });
-}
+    try {
+        await distube.play(channel, song, {
+            skip: false,
+        });
+        res.status(200);
+        res.send();
+    } catch(error) {
+        res.status(500);
+        res.json(error)
+    }
+});
 
-async function togglePause(guildId) {
+app.post("/pause-toggle", async (req, res) => {
+    const { guildId } = req.body;
+
     const queue = distube.getQueue(guildId);
     if(!queue) {
-        console.error("Queue not found!");
-        return;
+        res.status(400);
+        res.send("Channel not found!");
     }
 
     if(queue.paused) {
@@ -122,17 +128,28 @@ async function togglePause(guildId) {
     } else {
         queue.pause();
     }
-}
 
-async function skip(guildId) {
+    res.status(200);
+    res.send();
+});
+
+app.post("/skip", async (req, res) => {
+    const { guildId } = req.body;
+
     try {
         await distube.skip(guildId);
     } catch(error) {
         if(error.code === "NO_UP_NEXT") {
             await distube.stop(guildId);
+        } else {
+            res.status(500);
+            res.json(error);
         }
     }
-}
+
+    res.status(200);
+    res.send();
+});
 
 client.login(token).then(() => {
     console.log(`Bot ready! Logged in as ${client.user.tag}`);
