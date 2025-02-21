@@ -16,6 +16,6 @@ module.exports = {
         await distube.stop(interaction.guild);
         await distube.voices.leave(interaction.guild);
 
-        await interaction.reply("Skipped song!");
+        await interaction.reply("Bye bye!");
     },
 }
