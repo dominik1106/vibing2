@@ -67,16 +67,16 @@ distube.on("debug", (debug) => {
     console.log(`[Debug]: ${debug}`);
 });
 
-distube.on("finish", (queue) => {
-    console.log(`[Finish]: ${queue}`);
-})
-
 distube.on("deleteQueue", (queue) => {
     if(queue.textChannel && queue.voiceChannel) {
         queue.textChannel.send("No more songs!");
     }
     console.log(`[DeleteQueue]: ${queue}`);
-})
+});
+
+function getInfo(guildId) {
+    const queue = distube.getQueue(guildId);
+}
 
 app.post("/join", async (req, res) => {
     const { guildId, channelId } = req.body;
@@ -149,6 +149,24 @@ app.post("/skip", async (req, res) => {
 
     res.status(200);
     res.send();
+});
+
+app.post("/loop", async (req, res) => {
+    const { guildId } = req.body;
+
+    const queue = distube.getQueue(guildId);
+    if(!queue) {
+        res.status(400);
+        res.send("Channel not found!");
+    }
+    if(queue.repeatMode === RepeatMode.DISABLED) {
+        queue.repeatMode = RepeatMode.SONG;
+    } else {
+        queue.repeatMode = RepeatMode.DISABLED;
+    }
+
+    res.status(200);
+    res.json({looping: queue.RepeatMode});
 });
 
 client.login(token).then(() => {
