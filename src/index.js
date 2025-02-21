@@ -138,6 +138,13 @@ app.post("/skip", async (req, res) => {
 
     try {
         await distube.skip(guildId);
+
+        const queue = distube.getQueue(guildId);
+        if(!queue) {
+            res.status(400);
+            res.send("Queue not found!");
+        }
+        queue.repeatMode = RepeatMode.DISABLED;
     } catch(error) {
         if(error.code === "NO_UP_NEXT") {
             await distube.stop(guildId);
@@ -157,7 +164,7 @@ app.post("/loop", async (req, res) => {
     const queue = distube.getQueue(guildId);
     if(!queue) {
         res.status(400);
-        res.send("Channel not found!");
+        res.send("Queue not found!");
     }
     if(queue.repeatMode === RepeatMode.DISABLED) {
         queue.repeatMode = RepeatMode.SONG;

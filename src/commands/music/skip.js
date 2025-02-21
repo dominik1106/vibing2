@@ -12,6 +12,7 @@ module.exports = {
 
         try {
             await distube.skip(interaction.guild);
+            queue.repeatMode = RepeatMode.DISABLED;
         } catch(error) {
             if(error.code === "NO_UP_NEXT") {
                 await distube.stop(interaction.guild);
