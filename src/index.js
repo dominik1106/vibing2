@@ -22,7 +22,7 @@ client.on(Events.InteractionCreate, async interaction => {
 	}
 
 	try {
-		await command.execute(interaction);
+		await command.execute(interaction, distube);
 	} catch (error) {
 		console.error(error);
 		if (interaction.replied || interaction.deferred) {
@@ -51,6 +51,9 @@ distube.on("finish", (queue) => {
 })
 
 distube.on("deleteQueue", (queue) => {
+    if(queue.textChannel && queue.voiceChannel) {
+        queue.textChannel.send("No more songs!");
+    }
     console.log(`[DeleteQueue]: ${queue}`);
 })
 
