@@ -1,4 +1,5 @@
 const { SlashCommandBuilder } = require("discord.js");
+const { RepeatMode } = require("distube");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -19,6 +20,8 @@ module.exports = {
         } catch(error) {
             if(error.code === "NO_UP_NEXT") {
                 await distube.stop(interaction.guild);
+            } else {
+                console.log(error);
             }
         }
 
