@@ -1,4 +1,4 @@
-const { Client, Events, GatewayIntentBits } = require('discord.js');
+const { Client, Events, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 const { DisTube, DisTubeVoice, DisTubeVoiceManager, Song } = require("distube");
 const { YouTubePlugin } = require("@distube/youtube");
 const path = require("path")
@@ -91,6 +91,16 @@ distube.on("deleteQueue", (queue) => {
         queue.textChannel.send("No more songs!");
     }
     console.log(`[DeleteQueue]: ${queue}`);
+});
+
+distube.on("playSong", async (queue, song) => {
+    console.log(queue.textChannel);
+    if(queue.textChannel) {
+        const embed = new EmbedBuilder()
+            .setColor("Blue")
+            .setDescription(`Now playing: [${song.name}](${song.url})`);
+        await queue.textChannel.send({embeds: [embed]})
+    }
 });
 
 distube.on("state-change", (guildId) => {

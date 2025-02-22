@@ -1,4 +1,5 @@
-const { SlashCommandBuilder, MessageFlags } = require("discord.js");
+const { SlashCommandBuilder, MessageFlags, EmbedBuilder } = require("discord.js");
+const { Song } = require("distube");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -32,16 +33,24 @@ module.exports = {
 
         await interaction.deferReply();
         try {
-            await distube.play(voiceChannel, song, {
+            const songInfo = await distube.handler.resolve(song);
+            if(!(songInfo instanceof Song)) {
+                throw Error("Playlist are not supported!");
+            }
+            await distube.play(voiceChannel, songInfo, {
                 member: interaction.member,
                 skip: false,
                 textChannel: interaction.channel
             });
+
+            const embed = new EmbedBuilder()
+            .setColor("Green")
+            .setDescription(`Added [${songInfo.name}](${songInfo.url}) to playlist!`);
+
+            await interaction.followUp({embeds: [embed]});
         } catch(error) {
             console.error(error);
             await interaction.followUp("Error! " + error);
         }
-
-        await interaction.followUp("Pong! " + song);
     },
 }
