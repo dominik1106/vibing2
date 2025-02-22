@@ -1,7 +1,8 @@
 const { Client, Events, GatewayIntentBits } = require('discord.js');
-const { DisTube, DisTubeVoice, DisTubeVoiceManager } = require("distube");
+const { DisTube, DisTubeVoice, DisTubeVoiceManager, Song } = require("distube");
 const { YouTubePlugin } = require("@distube/youtube");
 const path = require("path")
+const favicon = require("serve-favicon");
 
 require('dotenv').config();
 
@@ -17,7 +18,8 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
-app.use(express.static(path.join(__dirname, "public")));
+app.use("/static/", express.static(path.join(__dirname, "public")));
+app.use(favicon(path.join(__dirname, "public", "favicon.ico")));
 
 // Create http server from express server for socket.io
 const server = require("http").createServer(app);
@@ -30,8 +32,11 @@ const io = new Server(server, {
 
 io.on("connection", (socket) => {
     socket.emit("init", "Please provide the guildId", (guildId) => {
-      console.log("Client-Socket joining guild: ", guildId);
-      socket.join(guildId);
+        console.log("Client-Socket joining guild: ", guildId);
+        socket.join(guildId);
+
+        const info = getInfo(guildId);
+        socket.emit("state-change", info);
     });
 });
 
@@ -66,8 +71,10 @@ client.on(Events.InteractionCreate, async interaction => {
     distube.emit("state-change", interaction.guildId);
 })
 
+const youtubePlugin = new YouTubePlugin();
+
 const distube = new DisTube(client, {
-  plugins: [new YouTubePlugin()],
+  plugins: [youtubePlugin],
   joinNewVoiceChannel: true,
 });
 
@@ -94,6 +101,9 @@ distube.on("state-change", (guildId) => {
 function getInfo(guildId) {
     const queue = distube.getQueue(guildId);
     // console.log(queue.songs);
+    if(!queue) {
+        return null;
+    }
 
     const songs = queue.songs.map(({ source, name: title, duration, url, thumbnail }) => {
         return { source, title, duration, url, thumbnail }
@@ -118,8 +128,35 @@ function getInfo(guildId) {
     return info;
 }
 
-app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "index.html"));
+app.post("/query", async (req, res) => {
+    const { query } = req.body;
+
+    if(!query) {
+        res.status(400);
+        return res.send();
+    }
+
+    try {
+        const result = await distube.handler.resolve(query);
+
+        if(!result || !(result instanceof Song)) {
+            console.log("Error");
+            res.status(500);
+            return res.json({error: "Error occurred while searchig for song!"});
+        }
+
+        const { source, name: title, duration, url, thumbnail } = result;
+        const song = { source, title, duration, url, thumbnail };
+
+        // console.log(song);
+
+        res.status(200);
+        return res.json(song);
+    } catch(error) {
+        console.error(error);
+        res.status(500);
+        return res.json(error);
+    }
 });
 
 app.post("/join", async (req, res) => {
@@ -233,7 +270,7 @@ app.post("/loop", async (req, res) => {
 client.login(BOT_TOKEN).then(() => {
     console.log(`Bot ready! Logged in as ${client.user.tag}`);
 
-    server.listen(PORT, () => {
+    server.listen(PORT, "0.0.0.0", () => {
         console.log(`Server listening on port ${PORT}`);
     });
 });
