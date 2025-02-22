@@ -206,11 +206,7 @@ app.get("/channels", async (req, res) => {
 
 app.post("/join", async (req, res) => {
     const { guildId, channelId } = req.body;
-
-    console.log("joining channel!");
-    console.log(req.body);
-    console.log(guildId, channelId);
-
+    
     const channel = await client.channels.fetch(channelId);
     if(!channel) {
         res.status(400);
