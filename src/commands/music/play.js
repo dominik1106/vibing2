@@ -40,17 +40,14 @@ module.exports = {
             if(!(songInfo instanceof Song)) {
                 throw Error("Playlist are not supported!");
             }
-            await distube.play(voiceChannel, songInfo, {
+            distube.play(voice, songInfo, {
                 member: interaction.member,
                 skip: false,
-                textChannel: interaction.channel
+                textChannel: interaction.channel,
+                metadata: {
+                    interaction
+                }
             });
-
-            const embed = new EmbedBuilder()
-                .setColor("Green")
-                .setDescription(`Added [${songInfo.name}](${songInfo.url}) to playlist!`);
-
-            await interaction.followUp({embeds: [embed]});
         } catch(error) {
             console.error(error);
             const embedNotConnected = new EmbedBuilder()

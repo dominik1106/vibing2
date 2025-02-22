@@ -1,5 +1,5 @@
 const { Client, Events, GatewayIntentBits, EmbedBuilder, ChannelType } = require('discord.js');
-const { DisTube, DisTubeVoice, DisTubeVoiceManager, Song } = require("distube");
+const { DisTube, DisTubeVoice, DisTubeVoiceManager, Song, RepeatMode } = require("distube");
 const { YouTubePlugin } = require("@distube/youtube");
 const path = require("path")
 const favicon = require("serve-favicon");
@@ -77,6 +77,7 @@ const youtubePlugin = new YouTubePlugin();
 const distube = new DisTube(client, {
   plugins: [youtubePlugin],
   joinNewVoiceChannel: true,
+  emitNewSongOnly: true,
 });
 
 distube.on("error", (error, queue, song) => {
@@ -105,6 +106,13 @@ distube.on("playSong", async (queue, song) => {
     }
 });
 
+distube.on("addSong", async (queue, song) => {
+    const embed = new EmbedBuilder()
+        .setColor("Green")
+        .setDescription(`Added [${song.name}](${song.url}) to playlist!`);
+    song.metadata?.interaction?.followUp({embeds: [embed]})
+})
+
 distube.on("state-change", (guildId) => {
     const info = getInfo(guildId);
     io.to(guildId).emit("state-change", info);
@@ -114,6 +122,7 @@ function getInfo(guildId) {
     const queue = distube.getQueue(guildId);
     // console.log(queue.songs);
     if(!queue) {
+        // Info about voice channel?
         return null;
     }
 
