@@ -5,9 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <body>
+        <div id="main-container">
+            <div id="queue-container">
+                <div class="queue-item">
+                    <div class="item-info">
+                        <h4>Song Title 1</h4>
+                        <div class="duration">2:53</div>
+                    </div>
+                    <button>Play</button>
+                </div>
+            </div>
+            <div id="songs-container">
+            </div>
+        </div>
+    </body>
     <script>
+        const queueContainer = document.getElementById("queue-container");
+
+        // Socket.io
         const socket = io("http://localhost:4321");
         socket.on("connect", () => {
             console.log("Connected to socket server!");
@@ -18,8 +37,46 @@
         });
 
         socket.on("state-change", (info) => {
-            console.log(info);
+            console.log("State change!");
+            queueContainer.innerHTML = "";
+            info?.songs.forEach(song => {
+                createQueueElement(song);
+            });
         });
+
+        function createQueueElement(song) {
+            console.log(song);
+            console.log(song.duration);
+
+            // Create the queue item element
+            let queueItem = document.createElement("div");
+            queueItem.classList.add("queue-item");
+
+            // Create the item info element
+            let itemInfo = document.createElement("div");
+            itemInfo.classList.add("item-info");
+
+            // Create the song title element
+            let songTitle = document.createElement("h4");
+            songTitle.innerText = song.title; // Set the song title
+
+            // Create the duration element
+            let duration = document.createElement("div");
+            duration.classList.add("duration");
+            duration.innerText = song.duration; // Set the song duration
+
+            // Create the play button
+            let playNowButton = document.createElement("button");
+            playNowButton.innerText = "Play"; // Set the button text
+
+            // Append child elements
+            itemInfo.appendChild(songTitle);
+            itemInfo.appendChild(duration);
+            queueItem.appendChild(itemInfo);
+            queueItem.appendChild(playNowButton);
+
+            queueContainer.appendChild(queueItem);
+        }
     </script>
 </body>
 </html>
