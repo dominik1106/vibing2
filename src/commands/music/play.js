@@ -31,11 +31,16 @@ module.exports = {
         }
 
         await interaction.deferReply();
-        await distube.play(voiceChannel, song, {
-            member: interaction.member,
-            skip: false,
-            textChannel: interaction.channel
-        });
+        try {
+            await distube.play(voiceChannel, song, {
+                member: interaction.member,
+                skip: false,
+                textChannel: interaction.channel
+            });
+        } catch(error) {
+            console.error(error);
+            await interaction.followUp("Error! " + error);
+        }
 
         await interaction.followUp("Pong! " + song);
     },
