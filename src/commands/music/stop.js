@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, MessageFlags, EmbedBuilder } = require("discord.js");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -8,14 +8,21 @@ module.exports = {
             de: "Stoppt die Wiedergabe und trennt die Verbindung"
         }),
     async execute(interaction, distube) {
-        const queue = distube.getQueue(interaction.guild);
-        if(!queue) {
-            await interaction.reply("Not connected to a voice channel!");
+        const voice = distube.voices.get(interaction.guildId);
+        if(!voice) {
+            const embedNotConnected = new EmbedBuilder()
+                .setColor("Red")
+                .setDescription("Not connected to a voice channel!");
+            return interaction.reply({embeds: [embedNotConnected], flags: MessageFlags.Ephemeral});
         }
 
-        await distube.stop(interaction.guild);
+        // await distube.stop(interaction.guild);
         await distube.voices.leave(interaction.guild);
 
-        await interaction.reply("Bye bye!");
+        const embed = new EmbedBuilder()
+            .setColor("Purple")
+            .setDescription("Bye bye!");
+        
+        return interaction.reply({embeds: [embed]});
     },
 }

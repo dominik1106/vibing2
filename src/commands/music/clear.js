@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, MessageFlags, EmbedBuilder } = require("discord.js");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -10,12 +10,20 @@ module.exports = {
     async execute(interaction, distube) {
         const queue = distube.getQueue(interaction.guild);
         if(!queue) {
-            return;
+            const embedNotConnected = new EmbedBuilder()
+                .setColor("Red")
+                .setDescription("No active queue!");
+            return interaction.reply({embeds: [embedNotConnected], flags: MessageFlags.Ephemeral});
         }
 
         if(queue.songs.length > 1) {
             queue.songs.splice(1);
-            interaction.reply("Queue cleared!");
         }
+
+        const embed = new EmbedBuilder()
+            .setColor("Blue")
+            .setDescription(`Queue cleared!`);
+        
+        interaction.reply({embeds: [embed]});
     },
 }

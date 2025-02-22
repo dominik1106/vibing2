@@ -26,9 +26,12 @@ module.exports = {
             return;
         }
 
-        const voiceChannel = interaction.member.voice.channel;
-        if(!voiceChannel) {
-            return interaction.reply({ content: 'You are not in a voice channel!', flags: MessageFlags.Ephemeral });
+        const voice = interaction.member.voice.channel;
+        if(!voice) {
+            const embedNotConnected = new EmbedBuilder()
+                .setColor("Red")
+                .setDescription("Not connected to a voice channel!");
+            return interaction.reply({embeds: [embedNotConnected], flags: MessageFlags.Ephemeral});
         }
 
         await interaction.deferReply();
@@ -44,13 +47,16 @@ module.exports = {
             });
 
             const embed = new EmbedBuilder()
-            .setColor("Green")
-            .setDescription(`Added [${songInfo.name}](${songInfo.url}) to playlist!`);
+                .setColor("Green")
+                .setDescription(`Added [${songInfo.name}](${songInfo.url}) to playlist!`);
 
             await interaction.followUp({embeds: [embed]});
         } catch(error) {
             console.error(error);
-            await interaction.followUp("Error! " + error);
+            const embedNotConnected = new EmbedBuilder()
+                .setColor("Red")
+                .setDescription(`[Error]: ${error}`);
+            return interaction.followUp({embeds: [embedNotConnected], flags: MessageFlags.Ephemeral});
         }
     },
 }

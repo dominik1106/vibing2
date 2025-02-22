@@ -86,20 +86,21 @@ distube.on("debug", (debug) => {
     console.log(`[Debug]: ${debug}`);
 });
 
-distube.on("deleteQueue", (queue) => {
-    if(queue.textChannel && queue.voiceChannel) {
-        queue.textChannel.send("No more songs!");
-    }
+distube.on("finish", (queue) => {
+    const embed = new EmbedBuilder()
+            .setColor("Purple")
+            .setDescription("No more songs!");
+        
+    queue.textChannel.send({embeds: [embed]});
     console.log(`[DeleteQueue]: ${queue}`);
 });
 
 distube.on("playSong", async (queue, song) => {
-    console.log(queue.textChannel);
     if(queue.textChannel) {
         const embed = new EmbedBuilder()
             .setColor("Blue")
             .setDescription(`Now playing: [${song.name}](${song.url})`);
-        await queue.textChannel.send({embeds: [embed]})
+        await queue.textChannel.send({embeds: [embed]});
     }
 });
 
