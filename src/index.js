@@ -1,4 +1,4 @@
-const { Client, Events, GatewayIntentBits, EmbedBuilder } = require('discord.js');
+const { Client, Events, GatewayIntentBits, EmbedBuilder, ChannelType } = require('discord.js');
 const { DisTube, DisTubeVoice, DisTubeVoiceManager, Song } = require("distube");
 const { YouTubePlugin } = require("@distube/youtube");
 const path = require("path")
@@ -12,6 +12,7 @@ const PORT = process.env.PORT || 4321;
 const { Server } = require("socket.io");
 const express = require("express");
 const cors = require('cors');
+const { channel } = require('diagnostics_channel');
 const app = express();
 
 // Configure middleware
@@ -170,8 +171,45 @@ app.post("/query", async (req, res) => {
     }
 });
 
+// INSECURE!!
+app.get("/guilds", async (req, res) => {
+    const guilds = client.guilds.cache.map((guild) => {
+        return { 
+            id : guild.id,
+            name: guild.name,
+            iconURL: guild.iconURL()
+        };
+    });
+
+    res.json(guilds);
+});
+
+app.get("/channels", async (req, res) => {
+    const { guildId } = req.query;
+    if(!guildId) {
+        res.status(400);
+        res.send("Missing ?guildId=");
+    }
+
+    const guild = await client.guilds.fetch(guildId);
+    if(!guild) {
+        res.status(400);
+        res.send("Guild not found!");
+    }
+
+    const voiceChannels = guild.channels.cache
+        .filter(channel => channel.type === ChannelType.GuildVoice)
+        .map(channel => ({ id: channel.id, name: channel.name }));
+        
+    res.json(voiceChannels);
+});
+
 app.post("/join", async (req, res) => {
     const { guildId, channelId } = req.body;
+
+    console.log("joining channel!");
+    console.log(req.body);
+    console.log(guildId, channelId);
 
     const channel = await client.channels.fetch(channelId);
     if(!channel) {
