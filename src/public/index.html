@@ -8,41 +8,211 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <body>
-        <div id="main-container">
-            <div id="queue-container">
-                <div class="queue-item">
-                    <div class="item-info">
-                        <h4>Song Title 1</h4>
-                        <div class="duration">2:53</div>
-                    </div>
-                    <button>Play</button>
-                </div>
-            </div>
-            <div id="songs-container">
+    <header>
+        <div>
+            <select id="server-select">
+                <option value="" disabled selected>Select a server</option>
+            </select>
+            <select id="channel-select" disabled>
+                <option value="" disabled selected>Select a channel</option>
+            </select>
+            <button id="channel-join-button">Join</button>
+        </div>
+        <div id="search-bar">
+            <input type="text" name="" id="search-song">
+            <button id="play-song-button">Play</button>
+            <button id="save-song-button">Save</button>
+        </div>
+        <div>
+            currently connected to:
+            <div id="current-channel"></div>
+        </div>
+    </header>
+    <div id="main-container">
+        <div id="queue-container">
+        </div>
+        <div id="songs-container">
+        </div>
+    </div>
+    <footer>
+        <div id="current-song">
+            <img src="" alt="Album Art" id="song-image">
+            <div id="song-info">
+                <p id="song-title">Song Title</p>
             </div>
         </div>
-    </body>
+        <div id="playback-button-container">
+            <button id="loop-button" onclick="playBackButtons('loop')">Loop</button>
+            <button id="pause-button" onclick="playBackButtons('pause-toggle')">Pause</button>
+            <button id="skip-button" onclick="playBackButtons('skip')">Skip</button>
+        </div>
+    </footer>
     <script>
+        let socketIo = null
+        let guildId = null
+        const API_URL = "http://localhost:4321";
+
+        window.onload = function() {
+            const serverSelect = document.getElementById("server-select");
+            serverSelect.selectedIndex = 0;
+            serverSelect.addEventListener("change", function() {
+                guildId = this.value;
+                // socket io
+                socketIo = initSocketIO(guildId);
+
+                fetch(`${API_URL}/channels?guildId=${this.value}`)
+                    .then(response => response.json())
+                    .then(channels => {
+                        channels.forEach(channel => {
+                            const option = document.createElement("option");
+                            option.value = channel.id;
+                            option.innerText = channel.name;
+
+                            channelSelect.appendChild(option);
+                        });
+
+                        channelSelect.disabled = false;
+                    })
+                    .catch(error => console.error("Error fetching data:", error));
+            });
+
+            fetch(`${API_URL}/guilds`)
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(guild => {
+                        const option = document.createElement("option");
+                        option.value = guild.id;
+                        option.innerText = guild.name;
+
+                        serverSelect.appendChild(option);
+                    });
+                    console.log(data);
+                })
+                .catch(error => console.error("Error fetching data:", error));
+
+            const channelSelect = document.getElementById("channel-select");
+            channelSelect.selectedIndex = 0;
+
+            const joinChannelButton = document.getElementById("channel-join-button");
+            joinChannelButton.addEventListener("click", function() {
+                fetch(`${API_URL}/join`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json", // Explicitly define JSON format
+                    }, 
+                    body: JSON.stringify({
+                        guildId,
+                        channelId: channelSelect.value
+                    })
+                });
+            });
+
+            const searchSongEdit = document.getElementById("search-song");
+
+            const playSongButton = document.getElementById("play-song-button");
+            playSongButton.addEventListener("click", function() {
+                fetch(`${API_URL}/add-song`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json", // Explicitly define JSON format
+                    }, 
+                    body: JSON.stringify({
+                        guildId,
+                        song: searchSongEdit.value
+                    })
+                });
+
+                fetch(`${API_URL}/query`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    }, 
+                    body: JSON.stringify({
+                        query: searchSongEdit.value
+                    })
+                }).then(response => {
+                    return response.json()
+                }).then(songInfo => {
+                    console.log(songInfo);
+                });
+            });
+
+            const saveSongButton = document.getElementById("save-song-button");
+            saveSongButton.addEventListener("click", function() {
+                fetch(`${API_URL}/query`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    }, 
+                    body: JSON.stringify({
+                        query: searchSongEdit.value
+                    })
+                }).then(response => {
+                    return response.json()
+                }).then(songInfo => {
+                    console.log(songInfo);
+                });
+            });
+        };
+
+        function playBackButtons(endpoint) {
+            fetch(`${API_URL}/${endpoint}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json", // Explicitly define JSON format
+                }, 
+                body: JSON.stringify({
+                    guildId,
+                })
+            });
+        }
+
         const queueContainer = document.getElementById("queue-container");
 
-        // Socket.io
-        const socket = io("http://localhost:4321");
-        socket.on("connect", () => {
-            console.log("Connected to socket server!");
-        });
-        socket.on("init", (message, callback) => {
-            console.log("Server says: ", message);
-            callback("839444325884887070");
-        });
+        function initSocketIO(guildId) {
+            socket = io(API_URL);
 
-        socket.on("state-change", (info) => {
-            console.log("State change!");
-            queueContainer.innerHTML = "";
-            info?.songs.forEach(song => {
-                createQueueElement(song);
+            socket.on("connect", () => {
+                console.log("Connected to socket server!");
             });
-        });
+            socket.on("init", (message, callback) => {
+                console.log("Server says: ", message);
+                callback(guildId);
+            });
+
+            socket.on("state-change", (info) => {
+                console.log("state change!");
+                console.log(info);
+                if(info === null) {
+                    console.log("no info!");
+                    return;
+                }
+
+                queueContainer.innerHTML = "";
+                info?.songs.forEach((song, index) => {
+                    if(index === 0) return;
+                    createQueueElement(song);
+                });
+
+                const currentSong = info?.songs[0];
+
+                if(currentSong) {
+                    let currentSongInfo = document.getElementById("song-title");
+                    currentSongInfo.innerText = currentSong.title || "No song";
+
+                    let currentSongThumbnail = document.getElementById("song-image");
+                    console.log(currentSongThumbnail);
+                    if(currentSongThumbnail) {
+                        currentSongThumbnail.src = currentSong.thumbnail;
+                    }
+                }
+
+                const currentChannel = document.getElementById("current-channel");
+                currentChannel.innerText = info.voiceChannel.name;
+            });
+
+            return socket;
+        }
 
         function createQueueElement(song) {
             console.log(song);
