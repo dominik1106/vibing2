@@ -59,6 +59,9 @@ client.on(Events.InteractionCreate, async interaction => {
 	}
 
 	try {
+        const queue = distube.getQueue(interaction.guild);
+        if(queue) queue.textChannel = interaction.channel;
+
 		await command.execute(interaction, distube);
 	} catch (error) {
 		console.error(error);
@@ -110,7 +113,12 @@ distube.on("addSong", async (queue, song) => {
     const embed = new EmbedBuilder()
         .setColor("Green")
         .setDescription(`Added [${song.name}](${song.url}) to playlist!`);
-    song.metadata?.interaction?.followUp({embeds: [embed]})
+    
+    if(song.metadata?.interaction) {
+        song.metadata.interaction.followUp({embeds: [embed]});
+    } else {
+        queue.textChannel?.send({embeds: [embed]});
+    }
 })
 
 distube.on("state-change", (guildId) => {
@@ -232,10 +240,10 @@ app.post("/join", async (req, res) => {
 app.post("/add-song", async (req, res) => {
     const { guildId, song } = req.body;
 
-    const channel = await client.channels.fetch(channelId);
+    const channel = await distube.voices.get(guildId)?.channel;
     if(!channel) {
         res.status(400);
-        res.send("Channel not found!");
+        return res.send("Channel not found!");
     }
 
     try {
@@ -246,8 +254,9 @@ app.post("/add-song", async (req, res) => {
         distube.emit("state-change", guildId);
 
         res.status(200);
-        res.send();
+        return res.send();
     } catch(error) {
+        console.error(error);
         res.status(500);
         res.json(error)
     }
@@ -291,6 +300,7 @@ app.post("/skip", async (req, res) => {
     } catch(error) {
         if(error.code === "NO_UP_NEXT") {
             await distube.stop(guildId);
+            distube.emit("finish", queue);
         } else {
             res.status(500);
             res.json(error);
