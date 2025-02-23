@@ -13,6 +13,7 @@ const { Server } = require("socket.io");
 const express = require("express");
 const cors = require('cors');
 const { channel } = require('diagnostics_channel');
+const { getVoiceConnection } = require('@discordjs/voice');
 const app = express();
 
 // Configure middleware
@@ -36,8 +37,7 @@ io.on("connection", (socket) => {
         console.log("Client-Socket joining guild: ", guildId);
         socket.join(guildId);
 
-        const info = getInfo(guildId);
-        socket.emit("state-change", info);
+        distube.emit("state-change", guildId);
     });
 });
 
@@ -96,17 +96,17 @@ distube.on("finish", (queue) => {
             .setColor("Purple")
             .setDescription("No more songs!");
         
-    queue.textChannel.send({embeds: [embed]});
+    queue.textChannel?.send({embeds: [embed]});
     console.log(`[DeleteQueue]: ${queue}`);
 });
 
 distube.on("playSong", async (queue, song) => {
-    if(queue.textChannel) {
-        const embed = new EmbedBuilder()
-            .setColor("Blue")
-            .setDescription(`Now playing: [${song.name}](${song.url})`);
-        await queue.textChannel.send({embeds: [embed]});
-    }
+    const embed = new EmbedBuilder()
+        .setColor("Blue")
+        .setDescription(`Now playing: [${song.name}](${song.url})`);
+    await queue.textChannel?.send({embeds: [embed]});
+
+    distube.emit("state-change", queue.id);
 });
 
 distube.on("addSong", async (queue, song) => {
@@ -128,33 +128,48 @@ distube.on("state-change", (guildId) => {
 
 function getInfo(guildId) {
     const queue = distube.getQueue(guildId);
-    // console.log(queue.songs);
-    if(!queue) {
-        // Info about voice channel?
-        return null;
+    const guild = client.guilds.cache.get(guildId);
+    let voiceChannel = null;
+    let queueInfo = null;
+
+    if (guild) {
+        const botMember = guild.members.me; // Gets the bot's member object
+        if (botMember && botMember.voice.channel) {
+            voiceChannel = {
+                name: botMember.voice.channel.name,
+                id: botMember.voice.channel.id,
+            };
+        }
     }
 
-    const songs = queue.songs.map(({ source, name: title, duration, url, thumbnail }) => {
-        return { source, title, duration, url, thumbnail }
-    });
+    if (queue) {
+        const songs = queue.songs.map(({ source, name: title, duration, url, thumbnail }) => {
+            return { source, title, duration, url, thumbnail };
+        });
 
-    const voiceChannel = {
-        name: queue.voiceChannel.name,
-        id: queue.voiceChannel.id,
-    };
+        queueInfo = {
+            guild: queue.voiceChannel.guild.name,
+            guildId: queue.voiceChannel.guildId,
+            songs,
+            paused: queue.paused,
+            looping: queue.repeatMode,
+            currentTime: queue.currentTime,
+            volume: queue.volume
+        };
 
-    const info = {
-        guild: queue.voiceChannel.guild.name,
-        guildId: queue.voiceChannel.guildId,
-        songs,
+        // Ensure voiceChannel is correctly set from queue if available
+        voiceChannel = {
+            name: queue.voiceChannel.name,
+            id: queue.voiceChannel.id,
+        };
+    }
+
+    if (!voiceChannel && !queueInfo) return null;
+
+    return {
         voiceChannel,
-        paused: queue.paused,
-        looping: queue.repeatMode,
-        currentTime: queue.currentTime,
-        volume: queue.volume
+        queueInfo
     };
-
-    return info;
 }
 
 app.post("/query", async (req, res) => {
@@ -286,16 +301,15 @@ app.post("/pause-toggle", async (req, res) => {
 app.post("/skip", async (req, res) => {
     const { guildId } = req.body;
 
+    const queue = distube.getQueue(guildId);
+    if(!queue) {
+        res.status(400);
+        res.send("Queue not found!");
+    }
+
     try {
         await distube.skip(guildId);
 
-        distube.emit("state-change", guildId);
-
-        const queue = distube.getQueue(guildId);
-        if(!queue) {
-            res.status(400);
-            res.send("Queue not found!");
-        }
         queue.repeatMode = RepeatMode.DISABLED;
     } catch(error) {
         if(error.code === "NO_UP_NEXT") {
@@ -306,6 +320,8 @@ app.post("/skip", async (req, res) => {
             res.json(error);
         }
     }
+
+    distube.emit("state-change", guildId);
 
     res.status(200);
     res.send();
