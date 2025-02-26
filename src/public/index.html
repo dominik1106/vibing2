@@ -63,10 +63,11 @@
                 fetch(`${API_URL}/channels?guildId=${this.value}`)
                     .then(response => response.json())
                     .then(channels => {
-                        channels.forEach(channel => {
+                        console.log(channels);
+                        channels?.voiceChannels?.forEach(voiceChannel => {
                             const option = document.createElement("option");
-                            option.value = channel.id;
-                            option.innerText = channel.name;
+                            option.value = voiceChannel.id;
+                            option.innerText = voiceChannel.name;
 
                             channelSelect.appendChild(option);
                         });
@@ -181,20 +182,17 @@
             });
 
             socket.on("state-change", (info) => {
-                console.log("state change!");
-                console.log(info);
-                if(info === null) {
-                    console.log("no info!");
-                    return;
-                }
+                console.log("State change", info);
+
+                if(!info) return;
 
                 queueContainer.innerHTML = "";
-                info?.songs.forEach((song, index) => {
+                info.queueInfo?.songs.forEach((song, index) => {
                     if(index === 0) return;
                     createQueueElement(song);
                 });
 
-                const currentSong = info?.songs[0];
+                const currentSong = info.queueInfo?.songs[0];
 
                 if(currentSong) {
                     let currentSongInfo = document.getElementById("song-title");
@@ -208,7 +206,7 @@
                 }
 
                 const currentChannel = document.getElementById("current-channel");
-                currentChannel.innerText = info.voiceChannel.name;
+                currentChannel.innerText = info.voiceChannel?.name;
             });
 
             return socket;
