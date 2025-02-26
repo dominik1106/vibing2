@@ -232,8 +232,15 @@ app.get("/channels", async (req, res) => {
     const voiceChannels = guild.channels.cache
         .filter(channel => channel.type === ChannelType.GuildVoice)
         .map(channel => ({ id: channel.id, name: channel.name }));
+    
+    const textChannels = guild.channels.cache
+        .filter(channel => channel.type === ChannelType.GuildText)
+        .map(channel => ({ id: channel.id, name: channel.name }));
         
-    res.json(voiceChannels);
+    res.json({
+        voiceChannels,
+        textChannels
+    });
 });
 
 app.post("/join", async (req, res) => {
