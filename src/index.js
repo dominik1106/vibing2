@@ -15,7 +15,14 @@ const cors = require('cors');
 const { channel } = require('diagnostics_channel');
 const { getVoiceConnection } = require('@discordjs/voice');
 const { default: axios } = require('axios');
+const session = require('express-session');
 const app = express();
+
+const apiRoutes = require("./routes/api")(distube, client);
+app.use("/", apiRoutes);
+
+const { authRoutes, isAuthenticated } = require("./routes/auth");
+app.use("/auth", authRoutes);
 
 // Configure middleware
 app.use(express.json());
@@ -23,6 +30,14 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use("/static/", express.static(path.join(__dirname, "public")));
 app.use(favicon(path.join(__dirname, "public", "favicon.ico")));
+
+app.use(
+    session({
+        secret: process.env.SESSION_SECRET,
+        resave: false,
+        saveUninitialized: false
+    })
+);
 
 // Create http server from express server for socket.io
 const server = require("http").createServer(app);
@@ -172,44 +187,6 @@ function getInfo(guildId) {
         queueInfo
     };
 }
-
-app.get("/auth/callback", async (req,res) => {
-    const { code } = req.query;
-
-    if(!code) {
-        res.status(401);
-        return res.send("Error: No Code!");
-    }
-
-    const resp = await axios.post("https://discord.com/api/oauth2/token",
-        new URLSearchParams({
-            "client_id": process.env.CLIENT_ID,
-            "client_secret": process.env.CLIENT_SECRET,
-            "grant_type": "authorization_code",
-            "redirect_uri": "http://localhost:4321/auth/callback",
-            "code": code
-        }),
-        {
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            }
-        }
-    );
-    console.log(resp.data);
-
-    const resp2 = await axios.get("https://discord.com/api/users/@me/guilds", {
-        headers: {
-            Authorization: `Bearer ${resp.data.access_token}`
-        }
-    });
-
-    console.log(resp2.data);
-
-    res.json(resp.data);
-});
-
-const apiRoutes = require("./routes/api")(distube, client);
-app.use("/", apiRoutes);
 
 client.login(BOT_TOKEN).then(() => {
     console.log(`Bot ready! Logged in as ${client.user.tag}`);
