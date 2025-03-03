@@ -171,7 +171,11 @@
             }, {
                 headers: { "Content-Type": "application/json" }
             })
-            .then(response => createSongElement(response.data))
+            .then(response => {
+                bookmarks.set(response.data.url, response.data);
+                localStorage.setItem("bookmarks", JSON.stringify(Array.from(bookmarks)));
+                createSongElement(response.data);
+            })
             .catch(error => console.error("[Error][Search Song]", error));
 
             searchSongEdit.value = "";
@@ -210,6 +214,11 @@
         skipButton.addEventListener("click", () => playBackButtons(skipButton, "skip"));
 
 
+
+        let bookmarks = new Map(JSON.parse(localStorage.getItem("bookmarks") || "[]"));
+        bookmarks.forEach(bookmark => {
+            createSongElement(bookmark);
+        });
 
         let socketIo = null;
         initSocketIO(GUILD_ID);
@@ -289,6 +298,9 @@
             removeBookmarkButton.addEventListener("click", (event) => {
                 const bookmark = event.target.closest(".bookmark-container");
                 bookmark?.remove();
+
+                bookmarks.delete(songInfo.url);
+                localStorage.setItem("bookmarks", JSON.stringify(Array.from(bookmarks)));
             })
 
             const playImmediatlyButton = clone.querySelector(".play-immediatly");
