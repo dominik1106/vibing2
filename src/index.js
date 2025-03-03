@@ -46,7 +46,7 @@ const io = new Server(server, {
 
 io.on("connection", (socket) => {
     socket.emit("init", "Please provide the guildId", (guildId) => {
-        console.log("Client-Socket joining guild: ", guildId);
+        // console.log("Client-Socket joining guild: ", guildId);
         socket.join(guildId);
 
         distube.emit("state-change", guildId);
@@ -284,7 +284,7 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
         res.status(400).send("Either this guild does not exist, you are not a member, or the bot is not in this guild!");
     }
 
-    console.log(guild);
+    // console.log(guild);
     res.render("dashboard", { user, guild, URL: process.env.URL })
 });
 
