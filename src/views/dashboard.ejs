@@ -33,7 +33,7 @@
                     <option value="<%= channel.id %>"><%= channel.name%></option>
                 <% }); %>
             </select>
-
+            <button id="channel-join-button">Join</button>
             <label for="voice-channel-select">Text:</label>
             <select class="channel-select" id="text-channel-select" name="text-channel">
                 <option value="" disabled selected>Select a text channel</option>
@@ -41,23 +41,27 @@
                     <option value="<%= channel.id %>"><%= channel.name%></option>
                 <% }); %>
             </select>
-
-            <button id="channel-join-button">Join</button>
         </div>
     </header>
     <div id="main-container">
         <div id="queue-container">
-            <div class="queue-item">
-                <div class="item-info">
-                    <h4>Bios (10th Anniversary ver.) – Guilty Crown OST [Piano]</h4>
-                    <div class="duration">470</div>
+            <template id="queue-item-template">
+                <div class="queue-item">
+                    <div class="queue-item-info">
+                        <h4>Song Title</h4>
+                        <div class="queue-item-duration">2:30</div>
+                    </div>
+                    <button>
+                        <span class="material-icons-outlined">
+                            delete
+                        </span>
+                    </button>
                 </div>
-                <button>Play</button>
-            </div>
+            </template>
         </div>
         <div id="bookmarks-container">
             <template id="bookmark-template">
-                <div class="song-container">
+                <div class="bookmark-container">
                     <img src="https://i.ytimg.com/vi_webp/isB6-TnWvxc/maxresdefault.webp">
                     <a href="https://www.youtube.com/watch?v=twlM59bD6kM">禁断のレジスタンス(Kindan no Resistance) - 水樹奈々 // covered by 道明寺ここあ</a>
                     <button class="remove-bookmark song-button" title="Remove song from your bookmarks">
@@ -95,11 +99,11 @@
                     </span>
                 </button>
                 <button id="pause-button">
-                    <span class="material-icons-outlined">
-                        play_arrow
-                    </span>
                     <span class="material-icons-outlined" style="display: none;">
                         pause
+                    </span>
+                    <span class="material-icons-outlined">
+                        play_arrow
                     </span>
                 </button>
                 <button id="skip-button">
@@ -112,7 +116,7 @@
     </footer>
     <script>
         const GUILD_ID = "<%= guild.id %>";
-        const API_URL = "http://localhost:4321";
+        const API_URL = "<%= URL %>";
 
         // CONST's
 
@@ -130,6 +134,7 @@
         // MAIN-CONTENT
         // QUEUE
         const queueContainer = document.getElementById("queue-container");
+        const queueItemTemplate = document.getElementById("queue-item-template");
         // SONG-BOOKMARKS
         const bookmarksContainer = document.getElementById("bookmarks-container");
         const bookmarkTemplate = document.getElementById("bookmark-template");
@@ -152,14 +157,7 @@
         // HEADER
         // SEARCH-BAR
         playSongButton.addEventListener("click", function() {
-            axios.post(`${API_URL}/add-song`, {
-                guildId: GUILD_ID,
-                song: searchSongEdit.value,
-            }, {
-                headers: { "Content-Type": "application/json" }
-            })
-            .catch(error => console.error("[Error][Play Song]", error));
-
+            playSong(searchSongEdit.value);
             searchSongEdit.value = "";
         });
         saveSongButton.addEventListener("click", function() {
@@ -213,6 +211,7 @@
 
         let songBarInterval = null;
         let progress = 0;
+        let queueState = null;
 
         function initSocketIO(GUILD_ID) {
             socket = io(API_URL);
@@ -226,6 +225,7 @@
             });
 
             socket.on("state-change", (info) => {
+                queueState = info;
                 console.log("State change", info);
 
                 if(!info) return;
@@ -234,32 +234,35 @@
                     queueContainer.innerHTML = "";
                     info.queueInfo?.songs.forEach((song, index) => {
                         if(index === 0) return;
-                        createQueueElement(song);
+                        createQueueElement(song, index);
                     });
 
-                //     const currentSong = info.queueInfo?.songs[0];
+                    setButtonState(pauseButton, info.queueInfo.paused);
+                    setButtonState(loopButton, info.queueInfo.looping);
 
-                //     if(currentSong) {
-                //         currentSongTitle.innerText = currentSong.title || "No song";
+                    const currentSong = info.queueInfo?.songs[0];
 
-                //         currentSongThumbnail.src = currentSong.thumbnail;
+                    if(currentSong) {
+                        currentSongTitle.innerText = currentSong.title || "No song";
 
-                //         // clearInterval(songBarInterval);
-                //         // progress = info.queueInfo?.currentTime;
-                //         // currentSongProgressBar.max = currentSong.duration;
-                //         // songBarInterval = setInterval(function() {
-                //         //     progress += 1;
-                //         //     currentSongProgressBar.value = progress;
-                //         // }, 1000);
-                //     }
-                // }
+                        currentSongThumbnail.src = currentSong.thumbnail;
 
-                // if(info.voiceChannel) {
-                //     voiceChannelSelect.value = info.voiceChannel.id;
-                // }
+                        // clearInterval(songBarInterval);
+                        // progress = info.queueInfo?.currentTime;
+                        // currentSongProgressBar.max = currentSong.duration;
+                        // songBarInterval = setInterval(function() {
+                        //     progress += 1;
+                        //     currentSongProgressBar.value = progress;
+                        // }, 1000);
+                    }
+                }
 
-                // if(info.queueInfo?.textChannel) {
-                //     textChannel.value = info.queueInfo.textChannel.id;
+                if(info.voiceChannel) {
+                    voiceChannelSelect.value = info.voiceChannel.id;
+                }
+
+                if(info.queueInfo?.textChannel) {
+                    textChannel.value = info.queueInfo.textChannel.id;
                 }
             });
 
@@ -277,42 +280,95 @@
             title.href = songInfo.url;
             title.innerText = songInfo.title;
 
+            const removeBookmarkButton = clone.querySelector(".remove-bookmark");
+            removeBookmarkButton.addEventListener("click", (event) => {
+                const bookmark = event.target.closest(".bookmark-container");
+                bookmark?.remove();
+            })
+
+            const playImmediatlyButton = clone.querySelector(".play-immediatly");
+            playImmediatlyButton.addEventListener("click", () => {
+                console.log("PLAY NOW!");
+                axios.post(`${API_URL}/play-immediately`, {
+                    guildId: GUILD_ID,
+                    song: songInfo.url
+                }, {
+                    headers: { "Content-Type": "application/json" }
+                })
+                .catch(error => console.error("[Error][Play Song]", error));
+            });
+
+            const addToQueueButton = clone.querySelector(".add-to-queue");
+            addToQueueButton.addEventListener("click", () => {
+                console.log("ADD TO QUEUE!");
+                playSong(songInfo.url, false);
+            });
+
             bookmarksContainer.appendChild(clone);
         }
 
-        function createQueueElement(song) {
-            // Create the queue item element
-            let queueItem = document.createElement("div");
-            queueItem.classList.add("queue-item");
+        // <div class="bookmark-container">
+        // <img src="https://i.ytimg.com/vi_webp/isB6-TnWvxc/maxresdefault.webp">
+        // <a href="https://www.youtube.com/watch?v=twlM59bD6kM">禁断のレジスタンス(Kindan no Resistance) - 水樹奈々 // covered by 道明寺ここあ</a>
+        // <button class="remove-bookmark song-button" title="Remove song from your bookmarks">
+        //     <span class="material-icons-outlined">close</span>
+        // </button>
+        // <div class="buttons-container">
+        //     <button class="play-immediatly song-button" title="Play song immediatly">
+        //         <span class="material-icons-outlined">skip_next</span>
+        //     </button>
+        //     <button class="add-to-queue song-button" title="Add song to queue">
+        //         <span class="material-icons-outlined">playlist_add</span>
+        //     </button>
+        // </div>
 
-            // Create the item info element
-            let itemInfo = document.createElement("div");
-            itemInfo.classList.add("item-info");
+        function createQueueElement(songInfo, index) {
+            console.log(songInfo);
+            const template = queueItemTemplate;
+            const clone = template.content.cloneNode(true);
 
-            // Create the song title element
-            let songTitle = document.createElement("h4");
-            songTitle.innerText = song.title; // Set the song title
+            const songTitle = clone.querySelector("h4");
+            songTitle.innerText = songInfo.title;
 
-            // Create the duration element
-            let duration = document.createElement("div");
-            duration.classList.add("duration");
-            duration.innerText = song.duration; // Set the song duration
+            const duration = clone.querySelector(".queue-item-duration");
+            duration.innerText = songInfo.duration;
 
-            // Create the play button
-            let playNowButton = document.createElement("button");
+            const removeButton = clone.querySelector("button");
+            removeButton.addEventListener("click", () => removeSongAtIndex(index));
 
-            let deleteIcon = document.createElement("span");
-            deleteIcon.classList.add("material-icons-outlined");
-            deleteIcon.innerText = "close"
+            queueContainer.appendChild(clone);
+        }
 
-            // Append child elements
-            itemInfo.appendChild(songTitle);
-            itemInfo.appendChild(duration);
-            queueItem.appendChild(itemInfo);
-            queueItem.appendChild(playNowButton);
-            playNowButton.appendChild(deleteIcon);
 
-            queueContainer.appendChild(queueItem);
+        function playSong(songUrl, skip = false) {
+            console.log("test");
+            axios.post(`${API_URL}/add-song`, {
+                guildId: GUILD_ID,
+                song: songUrl,
+                playNow: skip
+            }, {
+                headers: { "Content-Type": "application/json" }
+            })
+            .catch(error => console.error("[Error][Play Song]", error));
+        }
+        
+        function setButtonState(button, state) {
+            const spans = button.getElementsByTagName("span");
+
+            if(spans.length === 2) {
+                spans[0].style.display = state ? "none" : "";
+                spans[1].style.display = state ? "" : "none";
+            }
+        }
+
+        function removeSongAtIndex(index) {
+            axios.post(`${API_URL}/remove-at-index`, {
+                guildId: GUILD_ID,
+                songIndex: index
+            }, {
+                headers: { "Content-Type": "application/json" }
+            })
+            .catch(error => console.error("[Error][Join Channel]", error));
         }
     </script>
 </body>

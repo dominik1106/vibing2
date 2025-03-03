@@ -12,6 +12,10 @@ body {
     align-items: center;
 }
 
+.channel-select-container > button {
+    margin: 5px;
+}
+
 #voice-channel-icon {
     display: flex;
     align-items: center;
@@ -73,8 +77,12 @@ header > * {
 }
 
 #bookmarks-container {
+    display: flex;
+    flex-wrap: wrap;
     flex: 3;
+    flex-direction: row;
     background-color: var(--light);
+    align-content: flex-start;
 }
 
 .queue-item {
@@ -86,7 +94,7 @@ header > * {
     background-color: var(--dark);
 }
 
-.queue-item > .item-info {
+.queue-item-info {
     display: flex;
     justify-content: space-between;
     font-size: 14px;
@@ -95,20 +103,20 @@ header > * {
     margin-right: 5px;
 }
 
-.queue-item .duration {
+.queue-item-duration {
     font-size: 12px;
     color: var(--light);
     margin-left: 10px;
 }
 
 .queue-item > button {
-    width: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     height: 32px;
-    color: white;
-    cursor: pointer;
-    border-radius: 5px;
-    font-size: 14px;
+    width: 32px;
     padding: 0;
+    border-radius: 3px;
     flex-shrink: 0;
 }
 
@@ -185,18 +193,19 @@ header > * {
   'opsz' 24
 }
 
-.song-container {
+.bookmark-container {
     position: relative;
     display: flex;
     flex-direction: column;
     width: 250px;
+    height: fit-content;
     margin: 20px;
     background-color: var(--dark);
     padding: 5px;
     border-radius: 5px;
 }
 
-.song-container > img {
+.bookmark-container > img {
     object-fit: contain;
     width: 100%;
     border-radius: 5px;
@@ -221,7 +230,7 @@ header > * {
     margin: 5px;
 }
 
-.song-container:hover .song-button {
+.bookmark-container:hover .song-button {
     opacity: 1;
 }
 
