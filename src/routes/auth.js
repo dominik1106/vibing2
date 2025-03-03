@@ -2,7 +2,7 @@ const express = require("express");
 const { default: axios } = require('axios');
 
 const router = express.Router();
-const callbackURI = "http://localhost:4321/auth/callback";
+const callbackURI = `${process.env.URL}/auth/callback`;
 
 router.get("/login", (req,res) => {
     const oauthURI = `https://discord.com/oauth2/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(callbackURI)}&scope=identify+guilds`;
