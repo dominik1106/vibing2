@@ -36,7 +36,7 @@ router.get("/callback", async (req,res) => {
                 "client_id": process.env.CLIENT_ID,
                 "client_secret": process.env.CLIENT_SECRET,
                 "grant_type": "authorization_code",
-                "redirect_uri": "http://localhost:4321/auth/callback",
+                "redirect_uri": callbackURI,
                 "code": code
             }),
             {
