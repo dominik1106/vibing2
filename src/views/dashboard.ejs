@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <link rel="stylesheet" type="text/css" href="/static/css/styles.css">
     <link rel="stylesheet" type="text/css" href="/static/css/dashboard.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined">
@@ -54,8 +55,8 @@
                 <button>Play</button>
             </div>
         </div>
-        <div id="songs-container">
-            <template id="song-bookmark-template">
+        <div id="bookmarks-container">
+            <template id="bookmark-template">
                 <div class="song-container">
                     <img src="https://i.ytimg.com/vi_webp/isB6-TnWvxc/maxresdefault.webp">
                     <a href="https://www.youtube.com/watch?v=twlM59bD6kM">禁断のレジスタンス(Kindan no Resistance) - 水樹奈々 // covered by 道明寺ここあ</a>
@@ -76,11 +77,11 @@
     </div>
     <footer>
         <div class="footer-container">
-            <div id="current-song">
-                <img src="" alt="Album Art" id="song-image">
-                <div id="song-info">
-                    <p id="song-title">Song Title</p>
-                    <progress id="song-progress" value="50" max="100"></progress>
+            <div id="current-song-container">
+                <img src="" alt="Album Art" id="current-song-thumbnail">
+                <div id="current-song-info">
+                    <p id="current-song-title">Song Title</p>
+                    <progress id="current-song-progress-bar" value="50" max="100"></progress>
                 </div>
                 <div id="current-song-gradient"></div>
             </div>
@@ -114,14 +115,39 @@
         let guildId = "<%= guild.id %>";
         const API_URL = "http://localhost:4321";
 
+        // CONST's
+
+        // HEADER
+        // SEARCH-BAR
+        const searchSongEdit = document.getElementById("search-song-edit");
+        const playSongButton = document.getElementById("play-song-button");
+        const saveSongButton = document.getElementById("save-song-button");
+        // CHANNEL SELECT
+        const voiceChannelSelect = document.getElementById("voice-channel-select");
+        const textChannelSelect = document.getElementById("text-channel-select");
+        const joinChannelButton = document.getElementById("channel-join-button");
+
+        // MAIN-CONTENT
+        // QUEUE
         const queueContainer = document.getElementById("queue-container");
-        const progressBar = document.getElementById("song-progress");
+        // SONG-BOOKMARKS
+        const bookmarksContainer = document.getElementById("bookmarks-container");
+        const bookmarkTemplate = document.getElementById("bookmark-template");
+
+        // FOOTER
+        // CURRENT-SONG
+        const currentSongThumbnail = document.getElementById("current-song-thumbnail");
+        const currentSongTitle = document.getElementById("current-song-title");
+        const currentSongProgressBar = document.getElementById("song-progress");
+        // PLAYBACK-BUTTONS
+        const loopButton = document.getElementById("loop-button");
+        const pauseButton = document.getElementById("pause-button");
+        const skipButton = document.getElementById("skip-button");
 
         initSocketIO(guildId);
 
         function createSongElement(songInfo) {
-            console.log(songInfo);
-            const template = document.getElementById("song-bookmark-template");
+            const template = bookmarkTemplate;
             const clone = template.content.cloneNode(true);
 
             const thumbnail = clone.querySelector("img");
@@ -131,14 +157,11 @@
             title.href = songInfo.url;
             title.innerText = songInfo.title;
 
-            document.getElementById("songs-container").appendChild(clone);
+            bookmarksContainer.appendChild(clone);
         }
 
         window.onload = function() {
-            const channelSelect = document.getElementById("voice-channel-select");
-            const joinChannelButton = document.getElementById("channel-join-button");
             joinChannelButton.addEventListener("click", function() {
-                console.log(guildId, channelSelect.value);
                 fetch(`${API_URL}/join`, {
                     method: "POST",
                     headers: {
@@ -146,14 +169,11 @@
                     }, 
                     body: JSON.stringify({
                         guildId,
-                        channelId: channelSelect.value
+                        channelId: voiceChannelSelect.value
                     })
                 });
             });
 
-            const searchSongEdit = document.getElementById("search-song");
-
-            const playSongButton = document.getElementById("play-song-button");
             playSongButton.addEventListener("click", function() {
                 fetch(`${API_URL}/add-song`, {
                     method: "POST",
@@ -167,7 +187,6 @@
                 });
             });
 
-            const saveSongButton = document.getElementById("save-song-button");
             saveSongButton.addEventListener("click", function() {
                 fetch(`${API_URL}/query`, {
                     method: "POST",
@@ -229,31 +248,25 @@
                     const currentSong = info.queueInfo?.songs[0];
 
                     if(currentSong) {
-                        let currentSongInfo = document.getElementById("song-title");
-                        currentSongInfo.innerText = currentSong.title || "No song";
+                        currentSongTitle.innerText = currentSong.title || "No song";
 
-                        let currentSongThumbnail = document.getElementById("song-image");
-                        if(currentSongThumbnail) {
-                            currentSongThumbnail.src = currentSong.thumbnail;
-                        }
+                        currentSongThumbnail.src = currentSong.thumbnail;
 
                         // clearInterval(songBarInterval);
                         // progress = info.queueInfo?.currentTime;
-                        // progressBar.max = currentSong.duration;
+                        // currentSongProgressBar.max = currentSong.duration;
                         // songBarInterval = setInterval(function() {
                         //     progress += 1;
-                        //     progressBar.value = progress;
+                        //     currentSongProgressBar.value = progress;
                         // }, 1000);
                     }
                 }
 
                 if(info.voiceChannel) {
-                    const voiceChannel = document.getElementById("voice-channel-select");
-                    voiceChannel.value = info.voiceChannel.id;
+                    voiceChannelSelect.value = info.voiceChannel.id;
                 }
 
                 if(info.queueInfo?.textChannel) {
-                    const textChannel = document.getElementById("text-channel-select");
                     textChannel.value = info.queueInfo.textChannel.id;
                 }
             });

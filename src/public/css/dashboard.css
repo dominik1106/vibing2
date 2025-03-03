@@ -52,7 +52,7 @@ header > * {
     border-radius: 3px;
 }
 
-#search-song {
+#search-song-edit {
     height: 32px;
     width: 500px;
     border: var(--black) solid 1px;
@@ -72,7 +72,7 @@ header > * {
     background-color: var(--medium);
 }
 
-#songs-container {
+#bookmarks-container {
     flex: 3;
     background-color: var(--light);
 }
@@ -112,7 +112,7 @@ header > * {
     flex-shrink: 0;
 }
 
-#current-song {
+#current-song-container {
     position: relative;
     display: flex;
     flex-direction: row;
@@ -136,24 +136,24 @@ header > * {
     z-index: -1;
 }
 
-#song-title {
+#current-song-title {
     text-overflow: ellipsis;
     overflow: hidden;
 }
 
-#song-image {
+#current-song-thumbnail {
     height: 3rem;
     object-fit: cover;
     border-radius: 5px;
     margin: 5px;
 }
 
-#song-info {
+#current-song-info {
     flex-grow: 1;
     margin: 5px;
 }
 
-#song-progress {
+#current-song-progress-bar {
     width: 100%;
     border: none;
     height: 0.5rem;
@@ -161,11 +161,11 @@ header > * {
     background: none;
 }
 
-#song-progress::-webkit-progress-value {
+#current-song-progress-bar::-webkit-progress-value {
     background-color: var(--highlight);
 }
 
-#song-progress::-moz-progress-bar {
+#current-song-progress-bar::-moz-progress-bar {
     background-color: var(--highlight);
 }
 
