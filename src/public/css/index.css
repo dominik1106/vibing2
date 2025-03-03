@@ -1,0 +1,72 @@
+* {
+    color: var(--white);
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+a {
+    text-decoration: none;
+}
+
+.login-button {
+    display: flex;
+    align-items: center;
+    align-content: center;
+}
+
+.login-button > svg {
+    margin-right: 10px;
+}
+
+.content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.guild-container {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.guild-item {
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    align-content: center;
+
+    width: 350px;
+
+    padding: 10px;
+    margin: 10px;
+    border-radius: 5px;
+
+    background-color: var(--medium);
+
+    transition: background-color 0.1s;
+}
+
+.guild-item > * {
+    margin: 5px;
+}
+
+.guild-item:hover {
+    background-color: var(--dark);
+}
+
+.guild-item > img {
+    width: 128px;
+    border-radius: 50%;
+}
+
+#get-started {
+    margin: 20px;
+    text-align: center;
+}

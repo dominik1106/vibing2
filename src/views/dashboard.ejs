@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/static/css/styles.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/dashboard.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined">
+</head>
+<body>
+    <header>
+        <div id="search-bar">
+            <input type="text" id="search-song" placeholder="Enter Youtube-URL or song name...">
+            <button id="play-song-button">
+                <span class="material-icons-outlined">
+                    play_circle
+                </span>
+            </button>
+            <button id="save-song-button">
+                <span class="material-icons-outlined">
+                    bookmarks
+                </span>
+            </button>
+        </div>
+        <div class="channel-select-container">
+            <label for="voice-channel">Voice:</label>
+            <select class="channel-select" id="voice-channel-select" name="voice-channel">
+                <option value="" disabled selected>Select a voice channel</option>
+                <% guild?.voiceChannels?.forEach(channel => { %>
+                    <option value="<%= channel.id %>"><%= channel.name%></option>
+                <% }); %>
+            </select>
+
+            <label for="text-channel">Text:</label>
+            <select class="channel-select" id="text-channel-select" name="text-channel">
+                <option value="" disabled selected>Select a text channel</option>
+                <% guild?.textChannels?.forEach(channel => { %>
+                    <option value="<%= channel.id %>"><%= channel.name%></option>
+                <% }); %>
+            </select>
+
+            <button id="channel-join-button">Join</button>
+        </div>
+    </header>
+    <div id="main-container">
+        <div id="queue-container">
+            <div class="queue-item">
+                <div class="item-info">
+                    <h4>Bios (10th Anniversary ver.) – Guilty Crown OST [Piano]</h4>
+                    <div class="duration">470</div>
+                </div>
+                <button>Play</button>
+            </div>
+        </div>
+        <div id="songs-container">
+            <template id="song-bookmark-template">
+                <div class="song-container">
+                    <img src="https://i.ytimg.com/vi_webp/isB6-TnWvxc/maxresdefault.webp">
+                    <a href="https://www.youtube.com/watch?v=twlM59bD6kM">禁断のレジスタンス(Kindan no Resistance) - 水樹奈々 // covered by 道明寺ここあ</a>
+                    <button class="remove-bookmark song-button" title="Remove song from your bookmarks">
+                        <span class="material-icons-outlined">close</span>
+                    </button>
+                    <div class="buttons-container">
+                        <button class="play-immediatly song-button" title="Play song immediatly">
+                            <span class="material-icons-outlined">skip_next</span>
+                        </button>
+                        <button class="add-to-queue song-button" title="Add song to queue">
+                            <span class="material-icons-outlined">playlist_add</span>
+                        </button>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+    <footer>
+        <div class="footer-container">
+            <div id="current-song">
+                <img src="" alt="Album Art" id="song-image">
+                <div id="song-info">
+                    <p id="song-title">Song Title</p>
+                    <progress id="song-progress" value="50" max="100"></progress>
+                </div>
+                <div id="current-song-gradient"></div>
+            </div>
+            <div id="playback-button-container">
+                <button id="loop-button" onclick="playBackButtons('loop')">
+                    <span class="material-icons-outlined">
+                        repeat
+                    </span>
+                    <span class="material-icons-outlined" style="display: none;">
+                        repeat_on
+                    </span>
+                </button>
+                <button id="pause-button" onclick="playBackButtons('pause-toggle')">
+                    <span class="material-icons-outlined">
+                        play_arrow
+                    </span>
+                    <span class="material-icons-outlined" style="display: none;">
+                        pause
+                    </span>
+                </button>
+                <button id="skip-button" onclick="playBackButtons('skip')">
+                    <span class="material-icons-outlined">
+                        skip_next
+                    </span>
+                </button>
+            </div>
+        </div>
+    </footer>
+    <script>
+        let socketIo = null;
+        let guildId = "<%= guild.id %>";
+        const API_URL = "http://localhost:4321";
+
+        const queueContainer = document.getElementById("queue-container");
+        const progressBar = document.getElementById("song-progress");
+
+        initSocketIO(guildId);
+
+        function createSongElement(songInfo) {
+            console.log(songInfo);
+            const template = document.getElementById("song-bookmark-template");
+            const clone = template.content.cloneNode(true);
+
+            const thumbnail = clone.querySelector("img");
+            thumbnail.src = songInfo.thumbnail;
+
+            const title = clone.querySelector("a");
+            title.href = songInfo.url;
+            title.innerText = songInfo.title;
+
+            document.getElementById("songs-container").appendChild(clone);
+        }
+
+        window.onload = function() {
+            const channelSelect = document.getElementById("voice-channel-select");
+            const joinChannelButton = document.getElementById("channel-join-button");
+            joinChannelButton.addEventListener("click", function() {
+                console.log(guildId, channelSelect.value);
+                fetch(`${API_URL}/join`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json", // Explicitly define JSON format
+                    }, 
+                    body: JSON.stringify({
+                        guildId,
+                        channelId: channelSelect.value
+                    })
+                });
+            });
+
+            const searchSongEdit = document.getElementById("search-song");
+
+            const playSongButton = document.getElementById("play-song-button");
+            playSongButton.addEventListener("click", function() {
+                fetch(`${API_URL}/add-song`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json", // Explicitly define JSON format
+                    }, 
+                    body: JSON.stringify({
+                        guildId,
+                        song: searchSongEdit.value
+                    })
+                });
+            });
+
+            const saveSongButton = document.getElementById("save-song-button");
+            saveSongButton.addEventListener("click", function() {
+                fetch(`${API_URL}/query`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    }, 
+                    body: JSON.stringify({
+                        query: searchSongEdit.value
+                    })
+                }).then(response => {
+                    return response.json()
+                }).then(songInfo => {
+                    console.log(songInfo);
+                    createSongElement(songInfo);
+                });
+            });
+        };
+
+        async function playBackButtons(endpoint) {
+            // self.disabled = true;
+            await fetch(`${API_URL}/${endpoint}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json", // Explicitly define JSON format
+                }, 
+                body: JSON.stringify({
+                    guildId,
+                })
+            });
+            // self.disabled = false;
+        }
+
+        let songBarInterval = null;
+        let progress = 0;
+
+        function initSocketIO(guildId) {
+            socket = io(API_URL);
+
+            socket.on("connect", () => {
+                console.log("Connected to socket server!");
+            });
+            socket.on("init", (message, callback) => {
+                console.log("Server says: ", message);
+                callback(guildId);
+            });
+
+            socket.on("state-change", (info) => {
+                console.log("State change", info);
+
+                if(!info) return;
+
+                if(info.queueInfo) {
+                    queueContainer.innerHTML = "";
+                    info.queueInfo?.songs.forEach((song, index) => {
+                        if(index === 0) return;
+                        createQueueElement(song);
+                    });
+
+                    const currentSong = info.queueInfo?.songs[0];
+
+                    if(currentSong) {
+                        let currentSongInfo = document.getElementById("song-title");
+                        currentSongInfo.innerText = currentSong.title || "No song";
+
+                        let currentSongThumbnail = document.getElementById("song-image");
+                        if(currentSongThumbnail) {
+                            currentSongThumbnail.src = currentSong.thumbnail;
+                        }
+
+                        // clearInterval(songBarInterval);
+                        // progress = info.queueInfo?.currentTime;
+                        // progressBar.max = currentSong.duration;
+                        // songBarInterval = setInterval(function() {
+                        //     progress += 1;
+                        //     progressBar.value = progress;
+                        // }, 1000);
+                    }
+                }
+
+                if(info.voiceChannel) {
+                    const voiceChannel = document.getElementById("voice-channel-select");
+                    voiceChannel.value = info.voiceChannel.id;
+                }
+
+                if(info.queueInfo?.textChannel) {
+                    const textChannel = document.getElementById("text-channel-select");
+                    textChannel.value = info.queueInfo.textChannel.id;
+                }
+            });
+
+            return socket;
+        }
+
+        function createQueueElement(song) {
+            console.log(song);
+            console.log(song.duration);
+
+            // Create the queue item element
+            let queueItem = document.createElement("div");
+            queueItem.classList.add("queue-item");
+
+            // Create the item info element
+            let itemInfo = document.createElement("div");
+            itemInfo.classList.add("item-info");
+
+            // Create the song title element
+            let songTitle = document.createElement("h4");
+            songTitle.innerText = song.title; // Set the song title
+
+            // Create the duration element
+            let duration = document.createElement("div");
+            duration.classList.add("duration");
+            duration.innerText = song.duration; // Set the song duration
+
+            // Create the play button
+            let playNowButton = document.createElement("button");
+
+            let deleteIcon = document.createElement("span");
+            deleteIcon.classList.add("material-icons-outlined");
+            deleteIcon.innerText = "close"
+
+            // Append child elements
+            itemInfo.appendChild(songTitle);
+            itemInfo.appendChild(duration);
+            queueItem.appendChild(itemInfo);
+            queueItem.appendChild(playNowButton);
+            playNowButton.appendChild(deleteIcon);
+
+            queueContainer.appendChild(queueItem);
+        }
+    </script>
+</body>
+</html>

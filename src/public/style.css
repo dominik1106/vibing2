@@ -10,6 +10,15 @@ body {
     flex-direction: column;
 }
 
+button {
+    background: #252525;
+	color: inherit;
+	border: none;
+	font: inherit;
+	cursor: pointer;
+	outline: inherit;
+}
+
 header {
     position: sticky;
     display: flex;
