@@ -39,8 +39,8 @@
                 <% }); %>
             </select>
             <button id="channel-join-button">Join</button>
-            <label for="voice-channel-select">Text:</label>
-            <select class="channel-select" id="text-channel-select" name="text-channel">
+            <label for="text-channel-select">Text:</label>
+            <select class="channel-select" id="text-channel-select" name="text-channel" disabled>
                 <option value="" disabled selected>Select a text channel</option>
                 <% guild?.textChannels?.forEach(channel => { %>
                     <option value="<%= channel.id %>"><%= channel.name%></option>
