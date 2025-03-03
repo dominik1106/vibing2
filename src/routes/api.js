@@ -31,6 +31,7 @@ module.exports = (distube, client) => {
             let startTime = isYouTubeLink(query) ? getStartTime(query) : null;
             if (startTime) {
                 song.url = query;
+                song.startTime = startTime;
             }
     
             res.status(200);

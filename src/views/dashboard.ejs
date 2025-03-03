@@ -67,7 +67,10 @@
         <div id="bookmarks-container">
             <template id="bookmark-template">
                 <div class="bookmark-container">
-                    <img src="">
+                    <div class="image-wrapper">
+                        <img src="">
+                        <p class="start-time"></p>
+                    </div>
                     <a href=""></a>
                     <button class="remove-bookmark song-button" title="Remove song from your bookmarks">
                         <span class="material-icons-outlined">close</span>
@@ -174,7 +177,7 @@
             .then(response => {
                 bookmarks.set(response.data.url, response.data);
                 localStorage.setItem("bookmarks", JSON.stringify(Array.from(bookmarks)));
-                createSongElement(response.data);
+                createBookmarkElement(response.data);
             })
             .catch(error => console.error("[Error][Search Song]", error));
 
@@ -217,7 +220,7 @@
 
         let bookmarks = new Map(JSON.parse(localStorage.getItem("bookmarks") || "[]"));
         bookmarks.forEach(bookmark => {
-            createSongElement(bookmark);
+            createBookmarkElement(bookmark);
         });
 
         let socketIo = null;
@@ -283,12 +286,23 @@
             return socket;
         }
 
-        function createSongElement(songInfo) {
+        function createBookmarkElement(songInfo) {
+            console.log(songInfo);
             const template = bookmarkTemplate;
             const clone = template.content.cloneNode(true);
 
             const thumbnail = clone.querySelector("img");
             thumbnail.src = songInfo.thumbnail;
+
+            if(songInfo.startTime) {
+                const startTime = clone.querySelector(".start-time");
+
+                if(songInfo.startTime < 3600) {
+                    startTime.innerText = "+ " + new Date(songInfo.startTime * 1000).toISOString().substring(14, 19);
+                } else {
+                    startTime.innerText = "+ " + new Date(songInfo.startTime * 1000).toISOString().substring(11, 16);
+                }
+            }
 
             const title = clone.querySelector("a");
             title.href = songInfo.url;
