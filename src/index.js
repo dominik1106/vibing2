@@ -17,12 +17,8 @@ const { getVoiceConnection } = require('@discordjs/voice');
 const { default: axios } = require('axios');
 const session = require('express-session');
 const app = express();
-
-const apiRoutes = require("./routes/api")(distube, client);
-app.use("/", apiRoutes);
-
-const { authRoutes, isAuthenticated } = require("./routes/auth");
-app.use("/auth", authRoutes);
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "./views"));
 
 // Configure middleware
 app.use(express.json());
@@ -99,6 +95,9 @@ const distube = new DisTube(client, {
   emitNewSongOnly: true,
 });
 
+const apiRoutes = require("./routes/api")(distube, client);
+const { authRoutes, isAuthenticated } = require("./routes/auth");
+
 distube.on("error", (error, queue, song) => {
     console.log(`[Error]: ${error.message}`);
 });
@@ -163,14 +162,25 @@ function getInfo(guildId) {
             return { source, title, duration, url, thumbnail };
         });
 
+        let textChannel = null;
+        if(queue.textChannel) {
+            textChannel = {
+                name: queue.textChannel.name,
+                id: queue.textChannel.id
+            };
+        }
+
+        let looping = (queue.repeatMode === 1) ? true : false;
+
         queueInfo = {
             guild: queue.voiceChannel.guild.name,
             guildId: queue.voiceChannel.guildId,
             songs,
             paused: queue.paused,
-            looping: queue.repeatMode,
+            looping,
             currentTime: queue.currentTime,
-            volume: queue.volume
+            volume: queue.volume,
+            textChannel: textChannel
         };
 
         // Ensure voiceChannel is correctly set from queue if available
@@ -187,6 +197,99 @@ function getInfo(guildId) {
         queueInfo
     };
 }
+
+async function getMutualServer(access_token) {
+    try {
+        const guildsResponse = await axios.get('https://discord.com/api/users/@me/guilds', {
+            headers: {
+              Authorization: `Bearer ${access_token}`
+            }
+        });
+
+        const commonGuilds = guildsResponse.data.filter(guild => 
+            client.guilds.cache.has(guild.id)
+        ).map(guild => ({
+            id: guild.id,
+            name: guild.name,
+            icon: guild.icon
+        }));
+
+        return commonGuilds;
+    } catch(error) {
+        console.error("Error while fetching guilds from discord api!");
+    }
+}
+
+async function checkMembership(guildId, userId) {
+    const guild = await client.guilds.fetch(guildId);
+
+    if(!guild) {
+        return null;
+    }
+
+    try {
+        const member = await guild.members.fetch(userId);
+
+        const channels = await guild.channels.fetch();
+
+        const voiceChannels = channels
+            .filter(channel => channel.type === ChannelType.GuildVoice)
+            .map(channel => ({ id: channel.id, name: channel.name }));
+
+        const textChannels = channels
+            .filter(channel => channel.type === ChannelType.GuildText)
+            .map(channel => ({ id: channel.id, name: channel.name }));
+
+        return {
+            id: guild.id,
+            name: guild.name,
+            icon: guild.icon,
+            voiceChannels,
+            textChannels,
+            systemChannelId: guild.systemChannelId
+        };
+    } catch(error) {
+        return null;
+    }
+}
+
+// filter out access_token and refresh_token before passing to ejs
+function getFrontendUser(user) {
+    if(!user) return null;
+
+    return {
+        id: user.id,
+        username: user.username,
+        global_name: user.global_name
+    };
+}
+
+app.get("/", async (req, res) => {
+    let guilds = null;
+    let user = null;
+    if(req.session.user) {
+        guilds = await getMutualServer(req.session.user.access_token);
+        user = getFrontendUser(req.session.user);
+    }
+    
+    res.render("index", { user, guilds, URL: process.env.URL });
+});
+
+app.get("/dashboard", isAuthenticated, async (req, res) => {
+    const { guildId } = req.query;
+    const guild = await checkMembership(guildId, req.session.user.id);
+    const user = getFrontendUser(req.session.user);
+
+    if(!guild) {
+        res.status(400).send("Either this guild does not exist, you are not a member, or the bot is not in this guild!");
+    }
+
+    console.log(guild);
+    res.render("dashboard", { user, guild, URL: process.env.URL })
+});
+
+app.use("/", apiRoutes);
+app.use("/auth", authRoutes);
 
 client.login(BOT_TOKEN).then(() => {
     console.log(`Bot ready! Logged in as ${client.user.tag}`);
