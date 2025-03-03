@@ -6,7 +6,8 @@ services:
       NODE_ENV: production
       BOT_TOKEN: DISCORD_BOT_TOKEN
       CLIENT_ID: DISCORD_CLIENT_ID
-      #PORT: 4321
+      #PORT: 4321 # Optional, sets the internal port
+      #SESSION_SECRET #
 
     ports:
       - 4321:4321
