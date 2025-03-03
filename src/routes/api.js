@@ -1,6 +1,7 @@
 const express = require("express");
 const { Client, Events, GatewayIntentBits, EmbedBuilder, ChannelType } = require('discord.js');
 const { DisTube, DisTubeVoice, DisTubeVoiceManager, Song, RepeatMode } = require("distube");
+const { getVoiceConnection } = require("@discordjs/voice");
 
 module.exports = (distube, client) => {
     const router = express.Router();
@@ -81,22 +82,107 @@ module.exports = (distube, client) => {
     
     router.post("/join", async (req, res) => {
         const { guildId, channelId } = req.body;
+
+        let channel = null
+        try {
+            channel = await client.channels.fetch(channelId);
+        } catch(error) {
+            res.status(500);
+            return res.json(error);
+        }
         
-        const channel = await client.channels.fetch(channelId);
         if(!channel) {
             res.status(400);
             return res.json({
                 error: "channel not found!",
             });
         }
-    
-        await distube.voices.join(channel);
+
+        try {
+            await distube.voices.join(channel);
+        } catch(error) {
+            res.status(500);
+            return res.json(error);
+        }
+
         distube.emit("state-change", guildId);
     
         res.status(200);
         return res.json({
             success: `joined channel ${channelId}!`
         });
+    });
+
+    router.post("/set-text-channel", async (req,res) => {
+        try {
+            const { guildId, channelId } = req.body;
+
+            const queue = distube.getQueue(guildId);
+            if(!queue) {
+                res.status(400);
+                return res.json({
+                    error: "queue not found!",
+                });
+            }
+
+            const textChannel = await client.channels.fetch(channelId);
+            if (!textChannel) {
+                res.status(400);
+                return res.json({
+                    error: "channel not found!",
+                });
+            }
+
+            if(textChannel.type !== ChannelType.GuildText) {
+                res.status(400);
+                return res.json({
+                    error: "not a text channel!",
+                });
+            }
+
+            queue.textChannel = textChannel;
+            distube.emit("state-change", guildId);
+
+            return res.json({
+                success: "set text channel!"
+            });
+        } catch(error) {
+            console.error(error);
+            res.status(500);
+            return res.json(error);
+        }
+    });
+
+    router.post("/remove-at-index", async (req, res) => {
+        try {
+            const { guildId, songIndex } = req.body;
+
+            const queue = distube.getQueue(guildId);
+            if(!queue) {
+                res.status(400);
+                return res.json({
+                    error: "queue not found!",
+                });
+            }
+
+            if(songIndex < 1 || songIndex >= queue.songs.length) {
+                res.status(400);
+                return res.json({
+                    error: "index not in range!",
+                });
+            }
+            queue.songs.splice(songIndex, 1)[0];
+            distube.emit("state-change", guildId);
+
+            res.status(200);
+            return res.json({
+                success: `removed song at index ${songIndex}!`
+            });
+        } catch(error) {
+            console.error(error);
+            res.status(500);
+            return res.json(error);
+        }
     });
     
     router.post("/add-song", async (req, res) => {
@@ -124,11 +210,11 @@ module.exports = (distube, client) => {
         } catch(error) {
             console.error(error);
             res.status(500);
-            res.json(error)
+            return res.json(error);
         }
     });
 
-    router.post("play-immediately", async (req, res) => {
+    router.post("/play-immediately", async (req, res) => {
         const { guildId, song } = req.body;
     
         const channel = await distube.voices.get(guildId)?.channel;
@@ -138,11 +224,16 @@ module.exports = (distube, client) => {
                 error: "channel not found!",
             });
         }
+
+        const queue = distube.getQueue(guildId);
     
         try {
             await distube.play(channel, song, {
-                skip: true,
+                position: 1
             });
+            if(queue) {
+                await distube.skip(guildId);
+            }
     
             distube.emit("state-change", guildId);
     
@@ -169,9 +260,9 @@ module.exports = (distube, client) => {
         }
     
         if(queue.paused) {
-            queue.resume();
+            await queue.resume();
         } else {
-            queue.pause();
+            await queue.pause();
         }
     
         distube.emit("state-change", guildId);
