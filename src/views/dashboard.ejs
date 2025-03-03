@@ -13,7 +13,7 @@
 <body>
     <header>
         <div id="search-bar">
-            <input type="text" id="search-song" placeholder="Enter Youtube-URL or song name...">
+            <input type="text" id="search-song-edit" placeholder="Enter Youtube-URL or song name...">
             <button id="play-song-button">
                 <span class="material-icons-outlined">
                     play_circle
@@ -26,7 +26,7 @@
             </button>
         </div>
         <div class="channel-select-container">
-            <label for="voice-channel">Voice:</label>
+            <label for="voice-channel-select">Voice:</label>
             <select class="channel-select" id="voice-channel-select" name="voice-channel">
                 <option value="" disabled selected>Select a voice channel</option>
                 <% guild?.voiceChannels?.forEach(channel => { %>
@@ -34,7 +34,7 @@
                 <% }); %>
             </select>
 
-            <label for="text-channel">Text:</label>
+            <label for="voice-channel-select">Text:</label>
             <select class="channel-select" id="text-channel-select" name="text-channel">
                 <option value="" disabled selected>Select a text channel</option>
                 <% guild?.textChannels?.forEach(channel => { %>
@@ -86,7 +86,7 @@
                 <div id="current-song-gradient"></div>
             </div>
             <div id="playback-button-container">
-                <button id="loop-button" onclick="playBackButtons('loop')">
+                <button id="loop-button">
                     <span class="material-icons-outlined">
                         repeat
                     </span>
@@ -94,7 +94,7 @@
                         repeat_on
                     </span>
                 </button>
-                <button id="pause-button" onclick="playBackButtons('pause-toggle')">
+                <button id="pause-button">
                     <span class="material-icons-outlined">
                         play_arrow
                     </span>
@@ -102,7 +102,7 @@
                         pause
                     </span>
                 </button>
-                <button id="skip-button" onclick="playBackButtons('skip')">
+                <button id="skip-button">
                     <span class="material-icons-outlined">
                         skip_next
                     </span>
@@ -111,8 +111,7 @@
         </div>
     </footer>
     <script>
-        let socketIo = null;
-        let guildId = "<%= guild.id %>";
+        const GUILD_ID = "<%= guild.id %>";
         const API_URL = "http://localhost:4321";
 
         // CONST's
@@ -127,12 +126,14 @@
         const textChannelSelect = document.getElementById("text-channel-select");
         const joinChannelButton = document.getElementById("channel-join-button");
 
+
         // MAIN-CONTENT
         // QUEUE
         const queueContainer = document.getElementById("queue-container");
         // SONG-BOOKMARKS
         const bookmarksContainer = document.getElementById("bookmarks-container");
         const bookmarkTemplate = document.getElementById("bookmark-template");
+
 
         // FOOTER
         // CURRENT-SONG
@@ -144,7 +145,126 @@
         const pauseButton = document.getElementById("pause-button");
         const skipButton = document.getElementById("skip-button");
 
-        initSocketIO(guildId);
+
+
+        // CALLBACKS
+
+        // HEADER
+        // SEARCH-BAR
+        playSongButton.addEventListener("click", function() {
+            axios.post(`${API_URL}/add-song`, {
+                guildId: GUILD_ID,
+                song: searchSongEdit.value,
+            }, {
+                headers: { "Content-Type": "application/json" }
+            })
+            .catch(error => console.error("[Error][Play Song]", error));
+
+            searchSongEdit.value = "";
+        });
+        saveSongButton.addEventListener("click", function() {
+            axios.post(`${API_URL}/query`, {
+                query: searchSongEdit.value,
+            }, {
+                headers: { "Content-Type": "application/json" }
+            })
+            .then(response => createSongElement(response.data))
+            .catch(error => console.error("[Error][Search Song]", error));
+
+            searchSongEdit.value = "";
+        });
+
+        // CHANNEL SELECT
+        joinChannelButton.addEventListener("click", function() {
+            axios.post(`${API_URL}/join`, {
+                guildId: GUILD_ID,
+                channelId: voiceChannelSelect.value
+            }, {
+                headers: { "Content-Type": "application/json" }
+            })
+            .catch(error => console.error("[Error][Join Channel]", error));
+        });
+
+
+        //FOOTER
+        // PLAYBACK-BUTTONS
+        function playBackButtons(button, endpoint) {
+            button.disabled = true;
+
+            axios.post(`${API_URL}/${endpoint}`, {
+                guildId: GUILD_ID,
+                channelId: voiceChannelSelect.value
+            }, {
+                headers: { "Content-Type": "application/json" }
+            })
+            .catch(error => console.error(`[Error][${endpoint} Button]`, error))
+            .finally(() => {
+                button.disabled = false
+            });
+        }
+        loopButton.addEventListener("click", () => playBackButtons(loopButton, "loop"));
+        pauseButton.addEventListener("click", () => playBackButtons(pauseButton, "pause-toggle"));
+        skipButton.addEventListener("click", () => playBackButtons(skipButton, "skip"));
+
+
+
+        let socketIo = null;
+        initSocketIO(GUILD_ID);
+
+        let songBarInterval = null;
+        let progress = 0;
+
+        function initSocketIO(GUILD_ID) {
+            socket = io(API_URL);
+
+            socket.on("connect", () => {
+                console.log("Connected to socket server!");
+            });
+            socket.on("init", (message, callback) => {
+                console.log("Server says: ", message);
+                callback(GUILD_ID);
+            });
+
+            socket.on("state-change", (info) => {
+                console.log("State change", info);
+
+                if(!info) return;
+
+                if(info.queueInfo) {
+                    queueContainer.innerHTML = "";
+                    info.queueInfo?.songs.forEach((song, index) => {
+                        if(index === 0) return;
+                        createQueueElement(song);
+                    });
+
+                //     const currentSong = info.queueInfo?.songs[0];
+
+                //     if(currentSong) {
+                //         currentSongTitle.innerText = currentSong.title || "No song";
+
+                //         currentSongThumbnail.src = currentSong.thumbnail;
+
+                //         // clearInterval(songBarInterval);
+                //         // progress = info.queueInfo?.currentTime;
+                //         // currentSongProgressBar.max = currentSong.duration;
+                //         // songBarInterval = setInterval(function() {
+                //         //     progress += 1;
+                //         //     currentSongProgressBar.value = progress;
+                //         // }, 1000);
+                //     }
+                // }
+
+                // if(info.voiceChannel) {
+                //     voiceChannelSelect.value = info.voiceChannel.id;
+                // }
+
+                // if(info.queueInfo?.textChannel) {
+                //     textChannel.value = info.queueInfo.textChannel.id;
+                }
+            });
+
+            return socket;
+        }
 
         function createSongElement(songInfo) {
             const template = bookmarkTemplate;
@@ -160,124 +280,7 @@
             bookmarksContainer.appendChild(clone);
         }
 
-        window.onload = function() {
-            joinChannelButton.addEventListener("click", function() {
-                fetch(`${API_URL}/join`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json", // Explicitly define JSON format
-                    }, 
-                    body: JSON.stringify({
-                        guildId,
-                        channelId: voiceChannelSelect.value
-                    })
-                });
-            });
-
-            playSongButton.addEventListener("click", function() {
-                fetch(`${API_URL}/add-song`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json", // Explicitly define JSON format
-                    }, 
-                    body: JSON.stringify({
-                        guildId,
-                        song: searchSongEdit.value
-                    })
-                });
-            });
-
-            saveSongButton.addEventListener("click", function() {
-                fetch(`${API_URL}/query`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    }, 
-                    body: JSON.stringify({
-                        query: searchSongEdit.value
-                    })
-                }).then(response => {
-                    return response.json()
-                }).then(songInfo => {
-                    console.log(songInfo);
-                    createSongElement(songInfo);
-                });
-            });
-        };
-
-        async function playBackButtons(endpoint) {
-            // self.disabled = true;
-            await fetch(`${API_URL}/${endpoint}`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json", // Explicitly define JSON format
-                }, 
-                body: JSON.stringify({
-                    guildId,
-                })
-            });
-            // self.disabled = false;
-        }
-
-        let songBarInterval = null;
-        let progress = 0;
-
-        function initSocketIO(guildId) {
-            socket = io(API_URL);
-
-            socket.on("connect", () => {
-                console.log("Connected to socket server!");
-            });
-            socket.on("init", (message, callback) => {
-                console.log("Server says: ", message);
-                callback(guildId);
-            });
-
-            socket.on("state-change", (info) => {
-                console.log("State change", info);
-
-                if(!info) return;
-
-                if(info.queueInfo) {
-                    queueContainer.innerHTML = "";
-                    info.queueInfo?.songs.forEach((song, index) => {
-                        if(index === 0) return;
-                        createQueueElement(song);
-                    });
-
-                    const currentSong = info.queueInfo?.songs[0];
-
-                    if(currentSong) {
-                        currentSongTitle.innerText = currentSong.title || "No song";
-
-                        currentSongThumbnail.src = currentSong.thumbnail;
-
-                        // clearInterval(songBarInterval);
-                        // progress = info.queueInfo?.currentTime;
-                        // currentSongProgressBar.max = currentSong.duration;
-                        // songBarInterval = setInterval(function() {
-                        //     progress += 1;
-                        //     currentSongProgressBar.value = progress;
-                        // }, 1000);
-                    }
-                }
-
-                if(info.voiceChannel) {
-                    voiceChannelSelect.value = info.voiceChannel.id;
-                }
-
-                if(info.queueInfo?.textChannel) {
-                    textChannel.value = info.queueInfo.textChannel.id;
-                }
-            });
-
-            return socket;
-        }
-
         function createQueueElement(song) {
-            console.log(song);
-            console.log(song.duration);
-
             // Create the queue item element
             let queueItem = document.createElement("div");
             queueItem.classList.add("queue-item");
