@@ -92,7 +92,6 @@ const youtubePlugin = new YouTubePlugin();
 const distube = new DisTube(client, {
   plugins: [youtubePlugin],
   joinNewVoiceChannel: true,
-  emitNewSongOnly: true,
 });
 
 const apiRoutes = require("./routes/api")(distube, client);
@@ -116,10 +115,17 @@ distube.on("finish", (queue) => {
 });
 
 distube.on("playSong", async (queue, song) => {
-    const embed = new EmbedBuilder()
-        .setColor("Blue")
-        .setDescription(`Now playing: [${song.name}](${song.url})`);
-    await queue.textChannel?.send({embeds: [embed]});
+    if(!song.metadata?.repeat) {
+        const embed = new EmbedBuilder()
+            .setColor("Blue")
+            .setDescription(`Now playing: [${song.name}](${song.url})`);
+        await queue.textChannel?.send({embeds: [embed]});
+        song.metadata.repeat = true;
+    }
+
+    if(song.metadata?.startTime) {
+        queue.seek(song.metadata.startTime);
+    }
 
     distube.emit("state-change", queue.id);
 });

@@ -2,6 +2,7 @@ const express = require("express");
 const { Client, Events, GatewayIntentBits, EmbedBuilder, ChannelType } = require('discord.js');
 const { DisTube, DisTubeVoice, DisTubeVoiceManager, Song, RepeatMode } = require("distube");
 const { getVoiceConnection } = require("@discordjs/voice");
+const { isYouTubeLink, getStartTime } = require("../yt-utility");
 
 module.exports = (distube, client) => {
     const router = express.Router();
@@ -26,6 +27,11 @@ module.exports = (distube, client) => {
     
             const { source, name: title, duration, url, thumbnail } = result;
             const song = { source, title, duration, url, thumbnail };
+
+            let startTime = isYouTubeLink(query) ? getStartTime(query) : null;
+            if (startTime) {
+                song.url = query;
+            }
     
             res.status(200);
             return res.json(song);
@@ -195,10 +201,19 @@ module.exports = (distube, client) => {
                 error: "channel not found!",
             });
         }
+
+        let startTime = null
+        if(isYouTubeLink(song)) {
+            startTime = getStartTime(song);
+        }
     
         try {
             await distube.play(channel, song, {
                 skip: false,
+                metadata: {
+                    repeat: false,
+                    startTime
+                }
             });
     
             distube.emit("state-change", guildId);
@@ -226,10 +241,19 @@ module.exports = (distube, client) => {
         }
 
         const queue = distube.getQueue(guildId);
+
+        let startTime = null
+        if(isYouTubeLink(song)) {
+            startTime = getStartTime(song);
+        }
     
         try {
             await distube.play(channel, song, {
-                position: 1
+                position: 1,
+                metadata: {
+                    repeat: false,
+                    startTime
+                }
             });
             if(queue) {
                 await distube.skip(guildId);
