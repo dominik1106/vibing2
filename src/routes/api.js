@@ -10,22 +10,21 @@ module.exports = (distube, client) => {
     
         if(!query) {
             res.status(400);
-            return res.send();
+            return res.json({
+                error: "missing query body parameter!",
+            });
         }
     
         try {
             const result = await distube.handler.resolve(query);
     
             if(!result || !(result instanceof Song)) {
-                console.log("Error");
                 res.status(500);
                 return res.json({error: "Error occurred while searchig for song!"});
             }
     
             const { source, name: title, duration, url, thumbnail } = result;
             const song = { source, title, duration, url, thumbnail };
-    
-            // console.log(song);
     
             res.status(200);
             return res.json(song);
@@ -53,13 +52,17 @@ module.exports = (distube, client) => {
         const { guildId } = req.query;
         if(!guildId) {
             res.status(400);
-            res.send("Missing ?guildId=");
+            return res.json({
+                error: "missing guildId query parameter!",
+            });
         }
     
         const guild = await client.guilds.fetch(guildId);
         if(!guild) {
             res.status(400);
-            res.send("Guild not found!");
+            return res.json({
+                error: "guild not found!",
+            });
         }
     
         const voiceChannels = guild.channels.cache
@@ -70,7 +73,7 @@ module.exports = (distube, client) => {
             .filter(channel => channel.type === ChannelType.GuildText)
             .map(channel => ({ id: channel.id, name: channel.name }));
             
-        res.json({
+        return res.json({
             voiceChannels,
             textChannels
         });
@@ -82,14 +85,18 @@ module.exports = (distube, client) => {
         const channel = await client.channels.fetch(channelId);
         if(!channel) {
             res.status(400);
-            res.send("Channel not found!");
+            return res.json({
+                error: "channel not found!",
+            });
         }
     
         await distube.voices.join(channel);
         distube.emit("state-change", guildId);
     
         res.status(200);
-        res.send();
+        return res.json({
+            success: `joined channel ${channelId}!`
+        });
     });
     
     router.post("/add-song", async (req, res) => {
@@ -98,7 +105,9 @@ module.exports = (distube, client) => {
         const channel = await distube.voices.get(guildId)?.channel;
         if(!channel) {
             res.status(400);
-            return res.send("Channel not found!");
+            return res.json({
+                error: "channel not found!",
+            });
         }
     
         try {
@@ -109,11 +118,42 @@ module.exports = (distube, client) => {
             distube.emit("state-change", guildId);
     
             res.status(200);
-            return res.send();
+            return res.json({
+                success: "added to queue!"
+            });
         } catch(error) {
             console.error(error);
             res.status(500);
             res.json(error)
+        }
+    });
+
+    router.post("play-immediately", async (req, res) => {
+        const { guildId, song } = req.body;
+    
+        const channel = await distube.voices.get(guildId)?.channel;
+        if(!channel) {
+            res.status(400);
+            return res.json({
+                error: "channel not found!",
+            });
+        }
+    
+        try {
+            await distube.play(channel, song, {
+                skip: true,
+            });
+    
+            distube.emit("state-change", guildId);
+    
+            res.status(200);
+            return res.json({
+                success: "playing song now!"
+            });
+        } catch(error) {
+            console.error(error);
+            res.status(500);
+            return res.json(error)
         }
     });
     
@@ -123,7 +163,9 @@ module.exports = (distube, client) => {
         const queue = distube.getQueue(guildId);
         if(!queue) {
             res.status(400);
-            res.send("Channel not found!");
+            return res.json({
+                error: "queue not found!",
+            });
         }
     
         if(queue.paused) {
@@ -135,7 +177,9 @@ module.exports = (distube, client) => {
         distube.emit("state-change", guildId);
     
         res.status(200);
-        res.send();
+        return res.json({
+            success: queue.paused
+        });
     });
     
     router.post("/skip", async (req, res) => {
@@ -144,7 +188,9 @@ module.exports = (distube, client) => {
         const queue = distube.getQueue(guildId);
         if(!queue) {
             res.status(400);
-            res.send("Queue not found!");
+            return res.json({
+                error: "queue not found!",
+            });
         }
     
         try {
@@ -164,7 +210,9 @@ module.exports = (distube, client) => {
         distube.emit("state-change", guildId);
     
         res.status(200);
-        res.send();
+        return res.json({
+            success: "skipped!"
+        });
     });
     
     router.post("/loop", async (req, res) => {
@@ -173,7 +221,9 @@ module.exports = (distube, client) => {
         const queue = distube.getQueue(guildId);
         if(!queue) {
             res.status(400);
-            res.send("Queue not found!");
+            return res.json({
+                error: "queue not found!",
+            });
         }
         if(queue.repeatMode === RepeatMode.DISABLED) {
             queue.repeatMode = RepeatMode.SONG;
@@ -184,7 +234,9 @@ module.exports = (distube, client) => {
         distube.emit("state-change", guildId);
     
         res.status(200);
-        res.json({looping: queue.RepeatMode});
+        return res.json({
+            success: queue.RepeatMode
+        });
     });
 
     return router;
