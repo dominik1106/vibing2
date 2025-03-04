@@ -87,6 +87,15 @@ client.on(Events.InteractionCreate, async interaction => {
     distube.emit("state-change", interaction.guildId);
 })
 
+client.on("voiceStateUpdate", (oldState, newState) => {
+    if (newState.id === client.user.id) {
+        const guildId = newState.guild.id;
+        if (newState.channelId !== oldState.channelId) {
+            distube.emit("state-change", guildId);
+        }
+    }
+});
+
 const youtubePlugin = new YouTubePlugin();
 
 const distube = new DisTube(client, {

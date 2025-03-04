@@ -112,7 +112,7 @@ module.exports = (distube, client) => {
             return res.json(error);
         }
 
-        distube.emit("state-change", guildId);
+        // distube.emit("state-change", guildId);
     
         res.status(200);
         return res.json({
@@ -359,7 +359,7 @@ module.exports = (distube, client) => {
         try {
             const { guildId } = req.body;
 
-            await distube.voices.leave(interaction.guild);
+            await distube.voices.leave(guildId);
 
             res.status(200);
             return res.json({

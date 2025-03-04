@@ -33,6 +33,8 @@ module.exports = {
             .setColor("Blue")
             .setDescription("Skipped!");
         
-        return interaction.reply({embeds: [embed]});
+        interaction.reply({embeds: [embed]});
+
+        distube.emit("state-change", queue.id);
     },
 }
