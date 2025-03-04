@@ -142,19 +142,19 @@ distube.on("addSong", async (queue, song) => {
     }
 })
 
-distube.on("state-change", (guildId) => {
-    const info = getInfo(guildId);
+distube.on("state-change", async (guildId) => {
+    const info = await getInfo(guildId);
     io.to(guildId).emit("state-change", info);
 });
 
-function getInfo(guildId) {
+async function getInfo(guildId) {
     const queue = distube.getQueue(guildId);
-    const guild = client.guilds.cache.get(guildId);
+    const guild = await client.guilds.fetch(guildId);
     let voiceChannel = null;
     let queueInfo = null;
 
     if (guild) {
-        const botMember = guild.members.me; // Gets the bot's member object
+        const botMember = await guild.members.fetch(client.user.id);
         if (botMember && botMember.voice.channel) {
             voiceChannel = {
                 name: botMember.voice.channel.name,
