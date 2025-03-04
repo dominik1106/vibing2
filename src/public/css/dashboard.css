@@ -285,3 +285,15 @@ header > * {
 #home-button:hover > span {
     color: var(--highlight);
 }
+
+.stop-button {
+    background-color: var(--warning);
+}
+
+.stop-button:hover {
+    background-color: var(--warning-medium);
+}
+
+.stop-button:active {
+    background-color: var(--warning-dark);
+}

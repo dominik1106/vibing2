@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title><%= guild.name %></title>
     <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <link rel="stylesheet" type="text/css" href="/static/css/styles.css">
@@ -185,14 +185,31 @@
         });
 
         // CHANNEL SELECT
+        voiceChannelSelect.addEventListener("change", function() {
+            if (queueState?.voiceChannel?.id === voiceChannelSelect.value) {
+                joinChannelButton.classList.add("stop-button");
+                joinChannelButton.innerText = "Stop";
+            } else {
+                joinChannelButton.classList.remove("stop-button");
+                joinChannelButton.innerText = "Join";
+            }
+        });
+
         joinChannelButton.addEventListener("click", function() {
-            axios.post(`${API_URL}/join`, {
-                guildId: GUILD_ID,
-                channelId: voiceChannelSelect.value
-            }, {
-                headers: { "Content-Type": "application/json" }
-            })
-            .catch(error => console.error("[Error][Join Channel]", error));
+            if (queueState?.voiceChannel?.id === voiceChannelSelect.value) {
+                axios.post(`${API_URL}/stop`, { guildId: GUILD_ID }, {
+                    headers: { "Content-Type": "application/json" }
+                })
+                .catch(error => console.error("[Error][Disconnect]", error));
+            } else {
+                axios.post(`${API_URL}/join`, { 
+                    guildId: GUILD_ID, 
+                    channelId: voiceChannelSelect.value 
+                }, {
+                    headers: { "Content-Type": "application/json" }
+                })
+                .catch(error => console.error("[Error][Join Channel]", error));
+            }
         });
 
 
@@ -244,6 +261,14 @@
             socket.on("state-change", (info) => {
                 queueState = info;
                 console.log("State change", info);
+
+                if (queueState?.voiceChannel?.id === voiceChannelSelect.value) {
+                    joinChannelButton.classList.add("stop-button");
+                    joinChannelButton.innerText = "Stop";
+                } else {
+                    joinChannelButton.classList.remove("stop-button");
+                    joinChannelButton.innerText = "Join";
+                }
 
                 if(!info) return;
 

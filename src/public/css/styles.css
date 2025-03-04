@@ -4,10 +4,16 @@
     --medium:#36393e;
     --dark: #282b30;
     --black: #1e2124;
+
     --highlight:#7289da;
     --highlight-medium: #677ec7;
     --highlight-dark: #5b6eae;
     --highlight-disabled: #a3b1e1;
+
+    --warning: #E8112D;
+    --warning-medium: #be0e26;
+    --warning-dark: #8e0b1c;
+    --warning-disabled: #f14159;
 }
 
 * {
