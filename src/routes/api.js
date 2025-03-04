@@ -355,5 +355,21 @@ module.exports = (distube, client) => {
         });
     });
 
+    router.post("/stop", async (req, res) => {
+        try {
+            const { guildId } = req.body;
+
+            await distube.voices.leave(interaction.guild);
+
+            res.status(200);
+            return res.json({
+                success: "bye bye!"
+            });
+        } catch(error) {
+            res.status(500);
+            return res.json(error);
+        }
+    });
+
     return router;
 }
