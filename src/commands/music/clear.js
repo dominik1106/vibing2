@@ -25,5 +25,6 @@ module.exports = {
             .setDescription(`Queue cleared!`);
         
         interaction.reply({embeds: [embed]});
+        distube.emit("state-change", queue.id);
     },
 }

@@ -23,7 +23,7 @@ module.exports = {
                 .setColor("Blue")
                 .setDescription("Resumed!");
             
-            return interaction.reply({embeds: [embed]});
+            interaction.reply({embeds: [embed]});
         } else {
             queue.pause();
 
@@ -31,7 +31,9 @@ module.exports = {
                 .setColor("Blue")
                 .setDescription("Paused!");
             
-            return interaction.reply({embeds: [embed]});
+            interaction.reply({embeds: [embed]});
         }
+
+        distube.emit("state-change", queue.id);
     },
 }

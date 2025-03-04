@@ -19,6 +19,8 @@ module.exports = {
         // await distube.stop(interaction.guild);
         await distube.voices.leave(interaction.guild);
 
+        distube.emit("state-change", queue.id);
+
         const embed = new EmbedBuilder()
             .setColor("Purple")
             .setDescription("Bye bye!");

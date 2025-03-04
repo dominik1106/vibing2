@@ -24,7 +24,7 @@ module.exports = {
                 .setColor("Blue")
                 .setDescription("Looping current song!");
             
-            return interaction.reply({embeds: [embed]});
+            interaction.reply({embeds: [embed]});
         } else {
             queue.repeatMode = RepeatMode.DISABLED;
 
@@ -32,7 +32,9 @@ module.exports = {
                 .setColor("Blue")
                 .setDescription("No longer looping current song!");
             
-            return interaction.reply({embeds: [embed]});
+            interaction.reply({embeds: [embed]});
         }
+
+        distube.emit("state-change", queue.id);
     },
 }
