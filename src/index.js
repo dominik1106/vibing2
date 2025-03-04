@@ -112,6 +112,8 @@ distube.on("finish", (queue) => {
         
     queue.textChannel?.send({embeds: [embed]});
     console.log(`[DeleteQueue]: ${queue}`);
+
+    distube.emit("state-change", queue.id);
 });
 
 distube.on("playSong", async (queue, song) => {
@@ -140,6 +142,8 @@ distube.on("addSong", async (queue, song) => {
     } else {
         queue.textChannel?.send({embeds: [embed]});
     }
+
+    distube.emit("state-change", queue.id);
 })
 
 distube.on("state-change", async (guildId) => {
