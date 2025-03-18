@@ -17,7 +17,12 @@ module.exports = {
         }
 
         // await distube.stop(interaction.guild);
-        await distube.voices.leave(interaction.guild);
+        try {
+            await distube.voices.leave(interaction.guild);
+        } catch(error) {
+            console.error(error);
+            return interaction.reply("An internal server error occurred!");
+        }
 
         distube.emit("state-change", queue.id);
 
